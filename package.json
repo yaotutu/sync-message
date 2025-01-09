@@ -3,6 +3,7 @@
     "version": "1.0.0",
     "description": "短信同步webhook服务",
     "main": "src/app.js",
+    "type": "module",
     "scripts": {
         "start": "node src/app.js",
         "dev": "nodemon src/app.js"
