@@ -1,0 +1,25 @@
+{
+    "name": "sync-message",
+    "version": "1.0.0",
+    "description": "短信同步webhook服务",
+    "main": "src/app.js",
+    "scripts": {
+        "start": "node src/app.js",
+        "dev": "nodemon src/app.js"
+    },
+    "keywords": [
+        "sms",
+        "webhook",
+        "sync"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "express": "^4.17.1",
+        "body-parser": "^1.19.0",
+        "dotenv": "^10.0.0"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.15"
+    }
+}
