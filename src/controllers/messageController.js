@@ -11,12 +11,20 @@ export const getMessagesHandler = async (req, res) => {
         // 验证卡密并获取用户信息（不删除卡密）
         const result = await cardKeyDb.validateOnly(key);
         if (!result.valid) {
-            return res.status(401).json({ success: false, message: result.message });
+            return res.status(401).json({
+                success: false,
+                message: result.message,
+                expired: result.expired // 添加过期标志
+            });
         }
 
         // 获取用户的消息
         const messages = await messageDb.getMessages(result.username);
-        res.json({ success: true, messages });
+        res.json({
+            success: true,
+            messages,
+            expiresIn: result.expiresIn // 返回剩余时间给前端
+        });
     } catch (error) {
         console.error('获取消息失败：', error);
         res.status(500).json({ success: false, message: '获取消息失败' });

@@ -111,6 +111,15 @@
             font-weight: bold;
             color: #333;
         }
+
+        .countdown {
+            color: #666;
+            font-size: 14px;
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 0 10px;
+        }
     </style>
 </head>
 
@@ -132,6 +141,7 @@
         <div id="messageSection" class="message-section">
             <div class="user-info">
                 <span class="user-name" id="userName"></span>
+                <span class="countdown" id="countdown"></span>
                 <button onclick="logout()" class="btn">退出登录</button>
             </div>
             <div id="messageList" class="message-list">
@@ -144,6 +154,42 @@
         let currentKey = '';
         let currentUser = '';
         let ws = null;
+        let countdownInterval = null;
+
+        // 更新倒计时显示
+        function updateCountdown(expiresIn) {
+            const countdownElement = document.getElementById('countdown');
+            const minutes = Math.floor(expiresIn / 60000);
+            const seconds = Math.floor((expiresIn % 60000) / 1000);
+            countdownElement.textContent = `剩余时间: ${minutes}分${seconds}秒`;
+
+            if (expiresIn <= 0) {
+                clearInterval(countdownInterval);
+                logout();
+                alert('卡密已过期，请重新登录');
+            }
+        }
+
+        // 开始倒计时
+        function startCountdown(expiresIn) {
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+
+            const endTime = Date.now() + expiresIn;
+            updateCountdown(expiresIn);
+
+            countdownInterval = setInterval(() => {
+                const remaining = endTime - Date.now();
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    logout();
+                    alert('卡密已过期，请重新登录');
+                } else {
+                    updateCountdown(remaining);
+                }
+            }, 1000);
+        }
 
         // 密钥登录
         async function login() {
@@ -168,6 +214,11 @@
                     document.getElementById('messageSection').style.display = 'block';
                     loadMessages();
                     connectWebSocket();
+
+                    // 开始倒计时
+                    if (result.expiresIn) {
+                        startCountdown(result.expiresIn);
+                    }
                 } else {
                     loginError.textContent = result.message;
                     loginError.style.display = 'block';
@@ -197,8 +248,19 @@
                             <div class="message-content">${formatMessage(message.content)}</div>
                         </div>
                     `).join('') || '<div class="message-item">暂无消息</div>';
+
+                    // 更新倒计时
+                    if (result.expiresIn) {
+                        startCountdown(result.expiresIn);
+                    }
                 } else {
-                    messageList.innerHTML = '<div class="error-message">加载消息失败</div>';
+                    if (result.expired) {
+                        // 如果是过期导致的失败，自动登出
+                        logout();
+                        alert('卡密已过期，请重新登录');
+                    } else {
+                        messageList.innerHTML = `<div class="error-message">${result.message || '加载消息失败'}</div>`;
+                    }
                 }
             } catch (error) {
                 messageList.innerHTML = '<div class="error-message">加载消息失败，请稍后重试</div>';
@@ -250,11 +312,16 @@
                 ws.close();
                 ws = null;
             }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('messageSection').style.display = 'none';
             document.getElementById('cardKey').value = '';
             document.getElementById('loginError').style.display = 'none';
             document.getElementById('userName').textContent = '';
+            document.getElementById('countdown').textContent = '';
         }
 
         // 定期刷新消息

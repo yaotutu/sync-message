@@ -53,6 +53,7 @@ export const initDatabase = async () => {
                 key TEXT PRIMARY KEY,
                 username TEXT NOT NULL,
                 created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+                first_used_at INTEGER DEFAULT NULL,
                 FOREIGN KEY (username) REFERENCES users(username)
             )
         `);
@@ -187,6 +188,9 @@ export const authDb = {
 
 // 卡密相关操作
 export const cardKeyDb = {
+    // 卡密有效期（毫秒）
+    KEY_EXPIRY_TIME: 3 * 60 * 1000, // 3分钟
+
     async add(username, key) {
         await db.run(
             'INSERT INTO card_keys (key, username) VALUES (?, ?)',
@@ -196,7 +200,7 @@ export const cardKeyDb = {
 
     // 验证卡密但不删除
     async validateOnly(key) {
-        const cardKey = await db.get('SELECT key, username FROM card_keys WHERE key = ?', [key]);
+        const cardKey = await db.get('SELECT key, username, first_used_at FROM card_keys WHERE key = ?', [key]);
         if (!cardKey) {
             // 记录无效卡密使用（不关联用户）
             await db.run(
@@ -206,16 +210,44 @@ export const cardKeyDb = {
             return { valid: false, message: '无效的卡密' };
         }
 
+        const now = Date.now();
+
+        // 如果是首次使用，记录使用时间
+        if (!cardKey.first_used_at) {
+            await db.run(
+                'UPDATE card_keys SET first_used_at = ? WHERE key = ?',
+                [now, key]
+            );
+            cardKey.first_used_at = now;
+        }
+
+        // 检查是否过期
+        if (now - cardKey.first_used_at > this.KEY_EXPIRY_TIME) {
+            // 删除过期的卡密
+            await db.run('DELETE FROM card_keys WHERE key = ?', [key]);
+            // 记录过期使用
+            await db.run(
+                'INSERT INTO key_usage_logs (key, username, status) VALUES (?, ?, ?)',
+                [key, cardKey.username, 'expired']
+            );
+            return { valid: false, message: '卡密已过期' };
+        }
+
         // 记录成功使用
         await db.run(
             'INSERT INTO key_usage_logs (key, username, status) VALUES (?, ?, ?)',
             [key, cardKey.username, 'success']
         );
 
+        // 计算剩余时间（毫秒）
+        const remainingTime = this.KEY_EXPIRY_TIME - (now - cardKey.first_used_at);
+
         return {
             valid: true,
             message: '验证成功',
-            username: cardKey.username
+            username: cardKey.username,
+            expiresIn: remainingTime,
+            firstUsedAt: cardKey.first_used_at
         };
     },
 
