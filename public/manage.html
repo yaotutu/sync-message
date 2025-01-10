@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理系统 - 消息同步系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .login-section {
+            max-width: 400px;
+            margin: 0 auto 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-section {
+            display: none;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .panel-content {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            width: 100%;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn-danger {
+            background: #f44336;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .error-message {
+            color: #f44336;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message {
+            color: #4CAF50;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .list-container {
+            margin-top: 20px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .list-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            flex-grow: 1;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .key-list {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: #f5f5f5;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .tab-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .home-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .home-link a {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .home-link a:hover {
+            color: #333;
+        }
+
+        .user-item {
+            padding: 15px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .username {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .webhook-key {
+            font-family: monospace;
+            background-color: #f8f9fa;
+            padding: 5px;
+            border-radius: 3px;
+            margin: 5px 0;
+            word-break: break-all;
+        }
+
+        .created-at {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .user-actions {
+            margin-left: 15px;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- 登录选择 -->
+        <div id="loginSection" class="login-section">
+            <h1>管理系统</h1>
+            <div class="tab-buttons">
+                <button onclick="showLogin('admin')" class="tab-btn active">管理员登录</button>
+                <button onclick="showLogin('user')" class="tab-btn">用户登录</button>
+            </div>
+            <div id="adminLogin">
+                <div class="form-group">
+                    <label for="adminPassword">管理员密码</label>
+                    <input type="password" id="adminPassword" placeholder="请输入管理员密码">
+                </div>
+                <button onclick="loginAsAdmin()" class="btn">登录</button>
+                <div id="adminLoginError" class="error-message"></div>
+            </div>
+            <div id="userLogin" style="display: none;">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" placeholder="请输入密码">
+                </div>
+                <button onclick="loginAsUser()" class="btn">登录</button>
+                <div id="userLoginError" class="error-message"></div>
+            </div>
+            <div class="home-link">
+                <a href="/">返回首页</a>
+            </div>
+        </div>
+
+        <!-- 管理员面板 -->
+        <div id="adminPanel" class="panel-section">
+            <h2>管理员面板</h2>
+            <!-- 添加用户 -->
+            <div class="panel-content">
+                <h3>添加用户</h3>
+                <div class="form-group">
+                    <label for="newUsername">用户名</label>
+                    <input type="text" id="newUsername" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">密码</label>
+                    <input type="password" id="newPassword" placeholder="请输入密码">
+                </div>
+                <button onclick="addUser()" class="btn">添加用户</button>
+                <div id="addUserError" class="error-message"></div>
+                <div id="addUserSuccess" class="success-message"></div>
+            </div>
+
+            <!-- 用户列表 -->
+            <div class="panel-content">
+                <h3>用户列表</h3>
+                <button onclick="refreshUsers()" class="btn">刷新列表</button>
+                <div id="userList" class="list-container">
+                    <!-- 用户列表将在这里动态显示 -->
+                </div>
+            </div>
+
+            <!-- 卡密使用记录 -->
+            <div class="panel-content">
+                <h3>卡密使用记录</h3>
+                <button onclick="refreshKeyLogs()" class="btn">刷新记录</button>
+                <div id="keyLogs" class="list-container">
+                    <!-- 卡密使用记录将在这里动态显示 -->
+                </div>
+            </div>
+
+            <button onclick="adminLogout()" class="btn">退出登录</button>
+        </div>
+
+        <!-- 用户面板 -->
+        <div id="userPanel" class="panel-section">
+            <h2>用户面板</h2>
+            <!-- 生成密钥 -->
+            <div class="panel-content">
+                <h3>生成密钥</h3>
+                <div class="form-group">
+                    <label for="keyCount">生成数量</label>
+                    <input type="number" id="keyCount" value="1" min="1" max="10">
+                </div>
+                <button onclick="generateKeys()" class="btn">生成密钥</button>
+                <div id="keyList" class="key-list"></div>
+            </div>
+
+            <button onclick="userLogout()" class="btn">退出登录</button>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = {
+            type: '', // 'admin' 或 'user'
+            username: '',
+            password: ''
+        };
+
+        // 显示登录表单
+        function showLogin(type) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (type === 'admin') {
+                document.getElementById('adminLogin').style.display = 'block';
+                document.getElementById('userLogin').style.display = 'none';
+            } else {
+                document.getElementById('adminLogin').style.display = 'none';
+                document.getElementById('userLogin').style.display = 'block';
+            }
+        }
+
+        // 管理员登录
+        async function loginAsAdmin() {
+            const password = document.getElementById('adminPassword').value;
+            const loginError = document.getElementById('adminLoginError');
+
+            try {
+                const response = await fetch('/api/cardkey/admin/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    currentUser = {
+                        type: 'admin',
+                        password: password
+                    };
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('adminPanel').style.display = 'block';
+                    refreshUsers();
+                    refreshKeyLogs();
+                } else {
+                    loginError.textContent = result.message || '管理员密码错误';
+                    loginError.style.display = 'block';
+                }
+            } catch (error) {
+                loginError.textContent = '登录失败，请稍后重试';
+                loginError.style.display = 'block';
+            }
+        }
+
+        // 用户登录
+        async function loginAsUser() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginError = document.getElementById('userLoginError');
+
+            try {
+                const response = await fetch('/api/cardkey/user/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    currentUser = {
+                        type: 'user',
+                        username: username,
+                        password: password
+                    };
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('userPanel').style.display = 'block';
+                } else {
+                    loginError.textContent = result.message || '用户名或密码错误';
+                    loginError.style.display = 'block';
+                }
+            } catch (error) {
+                loginError.textContent = '登录失败，请稍后重试';
+                loginError.style.display = 'block';
+            }
+        }
+
+        // 添加用户
+        async function addUser() {
+            const username = document.getElementById('newUsername').value;
+            const password = document.getElementById('newPassword').value;
+            const errorMsg = document.getElementById('addUserError');
+            const successMsg = document.getElementById('addUserSuccess');
+
+            try {
+                const response = await fetch('/api/cardkey/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        adminPassword: currentUser.password,
+                        username,
+                        password
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    const { username, webhookKey } = result.data;
+                    alert(`用户添加成功！\n用户名：${username}\nWebhook密钥：${webhookKey}\n请保存好webhook密钥，它将用于webhook调用验证。`);
+                    refreshUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                errorMsg.textContent = '添加用户失败，请稍后重试';
+                errorMsg.style.display = 'block';
+                successMsg.style.display = 'none';
+            }
+        }
+
+        // 删除用户
+        async function deleteUser(username) {
+            if (!confirm(`确定要删除用户 ${username} 吗？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/cardkey/users/${username}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'x-admin-password': currentUser.password
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('用户删除成功');
+                    refreshUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('删除用户失败，请稍后重试');
+            }
+        }
+
+        // 刷新用户列表
+        async function refreshUsers() {
+            const userList = document.getElementById('userList');
+
+            try {
+                const response = await fetch('/api/cardkey/users', {
+                    headers: {
+                        'x-admin-password': currentUser.password
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    userList.innerHTML = result.users.map(user => `
+                        <div class="user-item">
+                            <div class="user-info">
+                                <div class="username">${user.username}</div>
+                                <div class="webhook-key">Webhook密钥：${user.webhook_key}</div>
+                                <div class="created-at">创建时间：${new Date(user.created_at).toLocaleString()}</div>
+                            </div>
+                            <div class="user-actions">
+                                <button onclick="deleteUser('${user.username}')" class="btn btn-danger">删除</button>
+                            </div>
+                        </div>
+                    `).join('') || '<div class="user-item">暂无用户</div>';
+                }
+            } catch (error) {
+                userList.innerHTML = '<div class="error-message">加载用户列表失败</div>';
+            }
+        }
+
+        // 生成密钥
+        async function generateKeys() {
+            const count = document.getElementById('keyCount').value;
+            const keyList = document.getElementById('keyList');
+
+            try {
+                const response = await fetch(`/api/cardkey/generate?count=${count}`, {
+                    headers: {
+                        'x-username': currentUser.username,
+                        'x-password': currentUser.password
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    keyList.textContent = result.keys.join('\n');
+                } else {
+                    keyList.textContent = '生成密钥失败：' + result.message;
+                }
+            } catch (error) {
+                keyList.textContent = '生成密钥失败，请稍后重试';
+            }
+        }
+
+        // 刷新卡密使用记录
+        async function refreshKeyLogs() {
+            const keyLogs = document.getElementById('keyLogs');
+
+            try {
+                const response = await fetch('/api/cardkey/key-logs', {
+                    headers: {
+                        'x-admin-password': currentUser.password
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    keyLogs.innerHTML = result.logs.map(log => `
+                        <div class="list-item">
+                            <div class="item-info">
+                                <div>${log.key}</div>
+                                <div style="font-size: 12px; color: #666;">
+                                    使用时间：${new Date(log.used_at).toLocaleString()}
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <span style="color: ${log.status === 'success' ? '#4CAF50' : '#f44336'}">
+                                    ${log.status === 'success' ? '成功' : '无效'}
+                                </span>
+                            </div>
+                        </div>
+                    `).join('') || '<div class="list-item">暂无记录</div>';
+                }
+            } catch (error) {
+                keyLogs.innerHTML = '<div class="error-message">加载卡密使用记录失败</div>';
+            }
+        }
+
+        // 管理员退出登录
+        function adminLogout() {
+            currentUser = { type: '', username: '', password: '' };
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('adminPanel').style.display = 'none';
+        }
+
+        // 用户退出登录
+        function userLogout() {
+            currentUser = { type: '', username: '', password: '' };
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('keyList').textContent = '';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('userPanel').style.display = 'none';
+        }
+    </script>
+</body>
+
+</html>

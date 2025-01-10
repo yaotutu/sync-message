@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 消息同步系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .admin-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .admin-section h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn-danger {
+            background: #f44336;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .user-list {
+            margin-top: 20px;
+        }
+
+        .user-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .error-message {
+            color: #f44336;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message {
+            color: #4CAF50;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .key-list {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-list {
+            margin-top: 20px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+        }
+
+        .log-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: grid;
+            grid-template-columns: 2fr 2fr 1fr;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-item .status-success {
+            color: #4CAF50;
+        }
+
+        .log-item .status-invalid {
+            color: #f44336;
+        }
+
+        .user-actions {
+            display: flex;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="admin-container">
+        <h1>管理后台</h1>
+
+        <!-- 管理员登录 -->
+        <div id="loginSection" class="admin-section">
+            <h2>管理员登录</h2>
+            <div class="form-group">
+                <label for="adminPassword">管理员密码</label>
+                <input type="password" id="adminPassword" placeholder="请输入管理员密码">
+            </div>
+            <button onclick="login()" class="btn">登录</button>
+            <div id="loginError" class="error-message"></div>
+        </div>
+
+        <!-- 管理功能区（默认隐藏） -->
+        <div id="adminPanel" style="display: none;">
+            <!-- 添加用户 -->
+            <div class="admin-section">
+                <h2>添加用户</h2>
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" placeholder="请输入密码">
+                </div>
+                <button onclick="addUser()" class="btn">添加用户</button>
+                <div id="addUserError" class="error-message"></div>
+                <div id="addUserSuccess" class="success-message"></div>
+            </div>
+
+            <!-- 用户列表 -->
+            <div class="admin-section">
+                <h2>用户列表</h2>
+                <button onclick="refreshUsers()" class="btn">刷新列表</button>
+                <div id="userList" class="user-list">
+                    <!-- 用户列表将在这里动态显示 -->
+                </div>
+            </div>
+
+            <!-- 生成卡密 -->
+            <div class="admin-section">
+                <h2>生成卡密</h2>
+                <div class="form-group">
+                    <label for="keyCount">生成数量</label>
+                    <input type="number" id="keyCount" value="5" min="1" max="100">
+                </div>
+                <button onclick="generateKeys()" class="btn">生成卡密</button>
+                <div id="keyList" class="key-list"></div>
+            </div>
+
+            <!-- 卡密使用记录 -->
+            <div class="admin-section">
+                <h2>卡密使用记录</h2>
+                <button onclick="refreshKeyLogs()" class="btn">刷新记录</button>
+                <div id="keyLogs" class="log-list">
+                    <!-- 卡密使用记录将在这里动态显示 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let adminPassword = '';
+
+        // 管理员登录
+        async function login() {
+            const password = document.getElementById('adminPassword').value;
+            const loginError = document.getElementById('loginError');
+
+            try {
+                // 验证管理员密码（通过获取用户列表来验证）
+                const response = await fetch('/api/cardkey/users', {
+                    headers: {
+                        'x-admin-password': password
+                    }
+                });
+
+                if (response.ok) {
+                    adminPassword = password;
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('adminPanel').style.display = 'block';
+                    refreshUsers();
+                    refreshKeyLogs();
+                } else {
+                    loginError.textContent = '管理员密码错误';
+                    loginError.style.display = 'block';
+                }
+            } catch (error) {
+                loginError.textContent = '登录失败，请稍后重试';
+                loginError.style.display = 'block';
+            }
+        }
+
+        // 添加用户
+        async function addUser() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('addUserError');
+            const successMsg = document.getElementById('addUserSuccess');
+
+            try {
+                const response = await fetch('/api/cardkey/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        adminPassword,
+                        username,
+                        password
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    successMsg.textContent = '用户添加成功';
+                    successMsg.style.display = 'block';
+                    errorMsg.style.display = 'none';
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+                    refreshUsers();
+                } else {
+                    errorMsg.textContent = result.message;
+                    errorMsg.style.display = 'block';
+                    successMsg.style.display = 'none';
+                }
+            } catch (error) {
+                errorMsg.textContent = '添加用户失败，请稍后重试';
+                errorMsg.style.display = 'block';
+                successMsg.style.display = 'none';
+            }
+        }
+
+        // 删除用户
+        async function deleteUser(username) {
+            if (!confirm(`确定要删除用户 ${username} 吗？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/cardkey/users/${username}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'x-admin-password': adminPassword
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('用户删除成功');
+                    refreshUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('删除用户失败，请稍后重试');
+            }
+        }
+
+        // 刷新用户列表
+        async function refreshUsers() {
+            const userList = document.getElementById('userList');
+
+            try {
+                const response = await fetch('/api/cardkey/users', {
+                    headers: {
+                        'x-admin-password': adminPassword
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    userList.innerHTML = result.users.map(user => `
+                        <div class="user-item">
+                            <span>${user.username}</span>
+                            <div class="user-actions">
+                                <span>${new Date(user.created_at).toLocaleString()}</span>
+                                <button onclick="deleteUser('${user.username}')" class="btn btn-danger">删除</button>
+                            </div>
+                        </div>
+                    `).join('') || '<div class="user-item">暂无用户</div>';
+                }
+            } catch (error) {
+                userList.innerHTML = '<div class="error-message">加载用户列表失败</div>';
+            }
+        }
+
+        // 生成卡密
+        async function generateKeys() {
+            const count = document.getElementById('keyCount').value;
+            const keyList = document.getElementById('keyList');
+
+            try {
+                const response = await fetch(`/api/cardkey/generate?count=${count}`, {
+                    headers: {
+                        'x-username': 'admin',
+                        'x-password': adminPassword
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    keyList.textContent = result.keys.join('\n');
+                } else {
+                    keyList.textContent = '生成卡密失败：' + result.message;
+                }
+            } catch (error) {
+                keyList.textContent = '生成卡密失败，请稍后重试';
+            }
+        }
+
+        // 刷新卡密使用记录
+        async function refreshKeyLogs() {
+            const keyLogs = document.getElementById('keyLogs');
+
+            try {
+                const response = await fetch('/api/cardkey/key-logs', {
+                    headers: {
+                        'x-admin-password': adminPassword
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    keyLogs.innerHTML = result.logs.map(log => `
+                        <div class="log-item">
+                            <span>${log.key}</span>
+                            <span>${new Date(log.used_at).toLocaleString()}</span>
+                            <span class="status-${log.status}">${log.status === 'success' ? '成功' : '无效'}</span>
+                        </div>
+                    `).join('') || '<div class="log-item">暂无记录</div>';
+                }
+            } catch (error) {
+                keyLogs.innerHTML = '<div class="error-message">加载卡密使用记录失败</div>';
+            }
+        }
+    </script>
+</body>
+
+</html>

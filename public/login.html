@@ -4,133 +4,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>登录 - 消息同步系统</title>
+    <title>用户登录 - 消息同步系统</title>
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        .login-container {
+        .container {
             max-width: 400px;
-            margin: 100px auto;
+            margin: 50px auto;
             padding: 20px;
-            background: #fff;
+            background: white;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .login-title {
+        h1 {
             text-align: center;
-            margin-bottom: 20px;
             color: #333;
-        }
-
-        .login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            margin-bottom: 30px;
         }
 
         .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
+            margin-bottom: 15px;
         }
 
         .form-group label {
+            display: block;
+            margin-bottom: 5px;
             color: #666;
-            font-size: 14px;
         }
 
         .form-group input {
-            padding: 10px;
+            width: 100%;
+            padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 16px;
+            font-size: 14px;
         }
 
-        .login-button {
+        .btn {
+            width: 100%;
             background: #4CAF50;
             color: white;
-            padding: 12px;
             border: none;
+            padding: 10px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s;
+            font-size: 14px;
+            margin-bottom: 10px;
         }
 
-        .login-button:hover {
+        .btn:hover {
             background: #45a049;
         }
 
         .error-message {
             color: #f44336;
-            font-size: 14px;
             margin-top: 10px;
-            text-align: center;
             display: none;
+        }
+
+        .success-message {
+            color: #4CAF50;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .key-list {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .user-panel {
+            display: none;
+        }
+
+        .admin-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .admin-link a {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .admin-link a:hover {
+            color: #333;
         }
     </style>
 </head>
 
 <body>
-    <div class="login-container">
-        <h2 class="login-title">消息同步系统</h2>
-        <form class="login-form" id="loginForm">
+    <div class="container">
+        <!-- 登录表单 -->
+        <div id="loginSection">
+            <h1>用户登录</h1>
             <div class="form-group">
-                <label for="cardKey">请输入卡密</label>
-                <input type="text" id="cardKey" name="cardKey" required placeholder="请输入您的卡密">
+                <label for="username">用户名</label>
+                <input type="text" id="username" placeholder="请输入用户名">
             </div>
-            <button type="submit" class="login-button">登录</button>
-            <div class="error-message" id="errorMessage"></div>
-        </form>
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="请输入密码">
+            </div>
+            <button onclick="login()" class="btn">登录</button>
+            <div id="loginError" class="error-message"></div>
+            <div class="admin-link">
+                <a href="/admin">管理员入口</a>
+            </div>
+        </div>
+
+        <!-- 用户功能区（默认隐藏） -->
+        <div id="userPanel" class="user-panel">
+            <h1>密钥管理</h1>
+            <div class="form-group">
+                <label for="keyCount">生成数量</label>
+                <input type="number" id="keyCount" value="1" min="1" max="10">
+            </div>
+            <button onclick="generateKeys()" class="btn">生成密钥</button>
+            <div id="keyList" class="key-list"></div>
+            <button onclick="logout()" class="btn">退出登录</button>
+        </div>
     </div>
 
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const cardKey = document.getElementById('cardKey').value;
-            const errorMessage = document.getElementById('errorMessage');
+        let currentUser = {
+            username: '',
+            password: ''
+        };
+
+        // 用户登录
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginError = document.getElementById('loginError');
 
             try {
-                const response = await fetch('/api/cardkey/validate', {
+                const response = await fetch('/api/cardkey/user/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ key: cardKey })
+                    body: JSON.stringify({ username, password })
                 });
 
-                const data = await response.json();
-
-                if (data.success) {
-                    // 保存登录状态
-                    localStorage.setItem('isLoggedIn', 'true');
-                    localStorage.setItem('loginTime', Date.now().toString());
-                    // 跳转到主页
-                    window.location.href = '/index.html';
+                const result = await response.json();
+                if (result.success) {
+                    currentUser.username = username;
+                    currentUser.password = password;
+                    document.getElementById('loginSection').style.display = 'none';
+                    document.getElementById('userPanel').style.display = 'block';
                 } else {
-                    errorMessage.textContent = data.message;
-                    errorMessage.style.display = 'block';
+                    loginError.textContent = result.message || '用户名或密码错误';
+                    loginError.style.display = 'block';
                 }
             } catch (error) {
-                errorMessage.textContent = '登录失败，请稍后重试';
-                errorMessage.style.display = 'block';
+                loginError.textContent = '登录失败，请稍后重试';
+                loginError.style.display = 'block';
             }
-        });
+        }
 
-        // 检查是否已登录
-        const checkLoginStatus = () => {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const loginTime = parseInt(localStorage.getItem('loginTime') || '0');
-            const currentTime = Date.now();
+        // 生成密钥
+        async function generateKeys() {
+            const count = document.getElementById('keyCount').value;
+            const keyList = document.getElementById('keyList');
 
-            // 如果已登录且在有效期内（10分钟），直接跳转到主页
-            if (isLoggedIn === 'true' && (currentTime - loginTime) < 600000) {
-                window.location.href = '/index.html';
+            try {
+                const response = await fetch(`/api/cardkey/generate?count=${count}`, {
+                    headers: {
+                        'x-username': currentUser.username,
+                        'x-password': currentUser.password
+                    }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    keyList.textContent = result.keys.join('\n');
+                } else {
+                    keyList.textContent = '生成密钥失败：' + result.message;
+                }
+            } catch (error) {
+                keyList.textContent = '生成密钥失败，请稍后重试';
             }
-        };
+        }
 
-        // 页面加载时检查登录状态
-        checkLoginStatus();
+        // 退出登录
+        function logout() {
+            currentUser = { username: '', password: '' };
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('keyList').textContent = '';
+            document.getElementById('loginSection').style.display = 'block';
+            document.getElementById('userPanel').style.display = 'none';
+        }
     </script>
 </body>
 

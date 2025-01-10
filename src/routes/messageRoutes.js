@@ -1,13 +1,12 @@
 import express from 'express';
-import { getMessagesHandler, webhookHandler } from '../controllers/messageController.js';
+import { handleWebhook, getMessagesHandler } from '../controllers/messageController.js';
 
 const router = express.Router();
 
-// API路由 - 获取所有消息
-router.get('/messages', getMessagesHandler);
+// Webhook路由 - 接收消息
+router.post('/webhook', handleWebhook);
 
-// Webhook路由 - 处理短信
-router.get('/sms-webhook', webhookHandler);
-router.post('/sms-webhook', webhookHandler);
+// 获取消息路由 - 需要卡密验证
+router.get('/messages', getMessagesHandler);
 
 export default router;

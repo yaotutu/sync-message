@@ -28,11 +28,15 @@ const createApp = () => {
 
     // 路由配置
     app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, '../public/login.html'));
+        res.sendFile(path.join(__dirname, '../public/index.html'));
+    });
+
+    app.get('/manage', (req, res) => {
+        res.sendFile(path.join(__dirname, '../public/manage.html'));
     });
 
     // API 路由
-    app.use('/api', messageRoutes);
+    app.use('/api/messages', messageRoutes);
     app.use('/api/cardkey', cardKeyRoutes);
 
     // 错误处理中间件
