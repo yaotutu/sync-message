@@ -13,45 +13,73 @@
         <header>
             <h1>消息同步系统</h1>
             <div class="header-controls">
-                <span id="autoRefreshStatus">自动刷新已开启</span>
+                <span id="sessionTimer" class="session-timer">剩余时间: 5:00</span>
                 <button id="logoutBtn" class="logout-btn">退出登录</button>
             </div>
         </header>
         <div class="message-container">
-            <div class="message-list" id="messageList">
+            <div id="sessionExpired" class="session-expired" style="display: none;">
+                <h2>会话已过期</h2>
+                <p>请重新登录查看消息</p>
+                <button onclick="window.location.href='/login.html'" class="login-btn">重新登录</button>
+            </div>
+            <div id="messageList" class="message-list">
                 <!-- 消息将在这里动态显示 -->
             </div>
         </div>
     </div>
 
     <script>
-        // 检查登录状态
-        const checkLoginStatus = () => {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            const loginTime = parseInt(localStorage.getItem('loginTime') || '0');
+        // 会话管理
+        const SESSION_DURATION = 5 * 60 * 1000; // 5分钟
+        const loginTime = parseInt(localStorage.getItem('loginTime') || '0');
+        const sessionTimer = document.getElementById('sessionTimer');
+        const messageList = document.getElementById('messageList');
+        const sessionExpired = document.getElementById('sessionExpired');
+        let timerInterval;
+
+        // 更新剩余时间显示
+        function updateTimer() {
             const currentTime = Date.now();
+            const timeElapsed = currentTime - loginTime;
+            const timeRemaining = SESSION_DURATION - timeElapsed;
 
-            // 如果未登录或登录已过期，跳转到登录页面
-            if (isLoggedIn !== 'true' || (currentTime - loginTime) >= 600000) {
-                window.location.href = '/login.html';
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                handleSessionExpired();
+                return;
             }
-        };
 
-        // 页面加载时检查登录状态
-        checkLoginStatus();
+            const minutes = Math.floor(timeRemaining / 60000);
+            const seconds = Math.floor((timeRemaining % 60000) / 1000);
+            sessionTimer.textContent = `剩余时间: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
 
-        // 每分钟检查一次登录状态
-        setInterval(checkLoginStatus, 60000);
-
-        // 退出登录
-        document.getElementById('logoutBtn').addEventListener('click', () => {
+        // 处理会话过期
+        function handleSessionExpired() {
+            messageList.style.display = 'none';
+            sessionExpired.style.display = 'block';
+            sessionTimer.textContent = '会话已过期';
             localStorage.removeItem('isLoggedIn');
             localStorage.removeItem('loginTime');
-            window.location.href = '/login.html';
-        });
+        }
+
+        // 检查登录状态
+        function checkLoginStatus() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const currentTime = Date.now();
+
+            if (!isLoggedIn || currentTime - loginTime >= SESSION_DURATION) {
+                window.location.href = '/login.html';
+                return false;
+            }
+            return true;
+        }
 
         // 加载消息
         async function loadMessages() {
+            if (!checkLoginStatus()) return;
+
             try {
                 const response = await fetch('/api/messages');
                 const messages = await response.json();
@@ -72,11 +100,20 @@
             }
         }
 
-        // 初始加载消息
-        loadMessages();
+        // 退出登录
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('loginTime');
+            window.location.href = '/login.html';
+        });
 
-        // 自动刷新消息（每5秒）
-        const autoRefreshInterval = setInterval(loadMessages, 5000);
+        // 初始化
+        if (checkLoginStatus()) {
+            loadMessages();
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            setInterval(loadMessages, 5000);
+        }
     </script>
 </body>
 
