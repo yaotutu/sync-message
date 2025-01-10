@@ -4,36 +4,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>短信记录</title>
+    <title>消息同步系统</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
-    <h1>短信记录</h1>
-    <div class="controls">
-        <button class="refresh-button" onclick="app.loadMessages()">刷新消息</button>
-        <div class="auto-refresh">
-            <label class="switch">
-                <input type="checkbox" id="autoRefresh" checked>
-                <span class="slider"></span>
-            </label>
-            <span>自动刷新</span>
-            <select id="refreshInterval">
-                <option value="5000">5秒</option>
-                <option value="10000">10秒</option>
-                <option value="30000" selected>30秒</option>
-                <option value="60000">1分钟</option>
-            </select>
-            <span class="countdown" id="countdown"></span>
+    <div class="container">
+        <header>
+            <h1>消息同步系统</h1>
+            <div class="header-controls">
+                <span id="autoRefreshStatus">自动刷新已开启</span>
+                <button id="logoutBtn" class="logout-btn">退出登录</button>
+            </div>
+        </header>
+        <div class="message-container">
+            <div class="message-list" id="messageList">
+                <!-- 消息将在这里动态显示 -->
+            </div>
         </div>
     </div>
-    <ul class="message-list" id="messageList"></ul>
 
-    <script src="/js/messageService.js"></script>
-    <script src="/js/autoRefresh.js"></script>
-    <script src="/js/app.js"></script>
     <script>
-        const app = new App();
+        // 检查登录状态
+        const checkLoginStatus = () => {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            const loginTime = parseInt(localStorage.getItem('loginTime') || '0');
+            const currentTime = Date.now();
+
+            // 如果未登录或登录已过期，跳转到登录页面
+            if (isLoggedIn !== 'true' || (currentTime - loginTime) >= 600000) {
+                window.location.href = '/login.html';
+            }
+        };
+
+        // 页面加载时检查登录状态
+        checkLoginStatus();
+
+        // 每分钟检查一次登录状态
+        setInterval(checkLoginStatus, 60000);
+
+        // 退出登录
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('loginTime');
+            window.location.href = '/login.html';
+        });
+
+        // 加载消息
+        async function loadMessages() {
+            try {
+                const response = await fetch('/api/messages');
+                const messages = await response.json();
+
+                if (messages && messages.length > 0) {
+                    messageList.innerHTML = messages.map(msg => `
+                        <div class="message">
+                            <div class="message-content">${msg.content}</div>
+                            <div class="message-time">${new Date(msg.rec_time).toLocaleString()}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    messageList.innerHTML = '<div class="no-messages">暂无消息</div>';
+                }
+            } catch (error) {
+                console.error('加载消息失败:', error);
+                messageList.innerHTML = '<div class="error-message">加载消息失败，请稍后重试</div>';
+            }
+        }
+
+        // 初始加载消息
+        loadMessages();
+
+        // 自动刷新消息（每5秒）
+        const autoRefreshInterval = setInterval(loadMessages, 5000);
     </script>
 </body>
 

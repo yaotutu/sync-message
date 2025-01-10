@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 
 import { config } from './config/config.js';
 import messageRoutes from './routes/messageRoutes.js';
+import cardKeyRoutes from './routes/cardKeyRoutes.js';
 
 // ES modules 中 __dirname 的替代方案
 const __filename = fileURLToPath(import.meta.url);
@@ -24,11 +25,12 @@ const createApp = () => {
 
     // 路由配置
     app.get('/', (req, res) => {
-        res.sendFile(path.join(__dirname, '../public/index.html'));
+        res.sendFile(path.join(__dirname, '../public/login.html'));
     });
 
     // API 路由
     app.use('/api', messageRoutes);
+    app.use('/api/cardkey', cardKeyRoutes);
 
     // 错误处理中间件
     app.use((err, req, res, next) => {

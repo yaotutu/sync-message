@@ -5,14 +5,14 @@ let messages = [];
 
 // 添加新消息
 export const addMessage = (messageData) => {
-    const { message, sender, timestamp } = messageData;
+    const { message, sender, rec_time } = messageData;
     const decodedMessage = decodeURIComponent(message);
 
+
     const newMessage = {
-        message: decodedMessage,
+        content: decodedMessage,
         sender,
-        timestamp,
-        receivedAt: new Date().toISOString()
+        rec_time
     };
 
     messages = [newMessage, ...messages].slice(0, config.maxMessages);
@@ -20,7 +20,9 @@ export const addMessage = (messageData) => {
 };
 
 // 获取所有消息
-export const getAllMessages = () => [...messages];
+export const getAllMessages = () => {
+    return [...messages].sort((a, b) => b.rec_time - a.rec_time);
+};
 
 // 清空消息（用于测试）
 export const clearMessages = () => {
