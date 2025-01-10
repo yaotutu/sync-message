@@ -57,12 +57,15 @@ export const validateCardKey = async (req, res) => {
             res.json({
                 success: true,
                 message: result.message,
-                username: result.username
+                username: result.username,
+                expiresIn: result.expiresIn,
+                firstUsedAt: result.firstUsedAt
             });
         } else {
             res.status(401).json({
                 success: false,
-                message: result.message
+                message: result.message,
+                expired: result.expired
             });
         }
     } catch (error) {
