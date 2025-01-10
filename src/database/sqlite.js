@@ -29,16 +29,6 @@ export const initDatabase = async () => {
 
         // 只在数据库文件不存在时创建表
         if (!dbExists) {
-            // 创建消息表
-            await db.exec(`
-                CREATE TABLE IF NOT EXISTS messages (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    content TEXT NOT NULL,
-                    sender TEXT NOT NULL,
-                    rec_time INTEGER NOT NULL
-                )
-            `);
-
             // 创建卡密表
             await db.exec(`
                 CREATE TABLE IF NOT EXISTS card_keys (
@@ -53,21 +43,6 @@ export const initDatabase = async () => {
     } catch (error) {
         console.error('数据库初始化失败:', error);
         throw error;
-    }
-};
-
-// 消息相关操作
-export const messageDb = {
-    async add(message) {
-        const { content, sender, rec_time } = message;
-        await db.run(
-            'INSERT INTO messages (content, sender, rec_time) VALUES (?, ?, ?)',
-            [content, sender, rec_time]
-        );
-    },
-
-    async getAll() {
-        return db.all('SELECT * FROM messages ORDER BY rec_time DESC LIMIT ?', [config.maxMessages]);
     }
 };
 
