@@ -153,7 +153,6 @@
     <script>
         let currentKey = '';
         let currentUser = '';
-        let ws = null;
         let countdownInterval = null;
 
         // 更新倒计时显示
@@ -231,7 +230,6 @@
                     }
 
                     loadMessages();
-                    connectWebSocket();
                 } else {
                     if (result.expired) {
                         loginError.textContent = '卡密已过期';
@@ -297,38 +295,10 @@
             }
         }
 
-        // 连接WebSocket
-        function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}`;
-
-            ws = new WebSocket(wsUrl);
-
-            ws.onmessage = function (event) {
-                const message = JSON.parse(event.data);
-                const messageList = document.getElementById('messageList');
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message-item';
-                messageDiv.innerHTML = `
-                    <div class="message-time">${new Date().toLocaleString()}</div>
-                    <div class="message-content">${formatMessage(JSON.stringify(message))}</div>
-                `;
-                messageList.insertBefore(messageDiv, messageList.firstChild);
-            };
-
-            ws.onclose = function () {
-                setTimeout(connectWebSocket, 1000); // 断线重连
-            };
-        }
-
         // 退出登录
         function logout() {
             currentKey = '';
             currentUser = '';
-            if (ws) {
-                ws.close();
-                ws = null;
-            }
             if (countdownInterval) {
                 clearInterval(countdownInterval);
                 countdownInterval = null;
@@ -346,7 +316,7 @@
             if (currentKey) {
                 loadMessages();
             }
-        }, 30000); // 每30秒刷新一次
+        }, 5000); // 每5秒刷新一次
     </script>
 </body>
 
