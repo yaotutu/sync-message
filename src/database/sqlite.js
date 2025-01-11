@@ -328,7 +328,7 @@ export const messageDb = {
                         SELECT id
                         FROM messages
                         WHERE username = ?
-                        ORDER BY received_at ASC
+                        ORDER BY strftime('%Y-%m-%d %H:%M:%S', rec_time) ASC
                         LIMIT ?
                     )
                 `, [username, countResult.count - config.messages.maxMessagesPerUser]);
@@ -346,10 +346,10 @@ export const messageDb = {
     // 获取用户的消息
     async getMessages(username) {
         const messages = await db.all(`
-            SELECT raw_data as content, sms_content, received_at
+            SELECT raw_data as content, sms_content, rec_time, received_at
             FROM messages
             WHERE username = ?
-            ORDER BY received_at DESC
+            ORDER BY strftime('%Y-%m-%d %H:%M:%S', rec_time) DESC
             LIMIT 100
         `, [username]);
         return messages;
