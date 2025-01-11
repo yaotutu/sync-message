@@ -191,9 +191,6 @@ export const authDb = {
 
 // 卡密相关操作
 export const cardKeyDb = {
-    // 卡密有效期（毫秒）
-    KEY_EXPIRY_TIME: 3 * 60 * 1000, // 3分钟
-
     async add(username, key) {
         await db.run(
             'INSERT INTO card_keys (key, username) VALUES (?, ?)',
@@ -224,74 +221,49 @@ export const cardKeyDb = {
             cardKey.first_used_at = now;
         }
 
-        // 检查是否过期
-        if (now - cardKey.first_used_at > this.KEY_EXPIRY_TIME) {
-            // 删除过期的卡密
-            await db.run('DELETE FROM card_keys WHERE key = ?', [key]);
-            // 记录过期使用
-            await db.run(
-                'INSERT INTO key_usage_logs (key, username, status) VALUES (?, ?, ?)',
-                [key, cardKey.username, 'expired']
-            );
-            return { valid: false, message: '卡密已过期' };
-        }
-
         // 记录成功使用
         await db.run(
             'INSERT INTO key_usage_logs (key, username, status) VALUES (?, ?, ?)',
             [key, cardKey.username, 'success']
         );
 
-        // 计算剩余时间（毫秒）
-        const remainingTime = this.KEY_EXPIRY_TIME - (now - cardKey.first_used_at);
-
         return {
             valid: true,
             message: '验证成功',
             username: cardKey.username,
-            expiresIn: remainingTime,
             firstUsedAt: cardKey.first_used_at
         };
     },
 
-    // 获取用户的卡密使用记录
-    async getUserLogs(username) {
-        const logs = await db.all(`
-            SELECT key, used_at, status
-            FROM key_usage_logs
-            WHERE username = ?
-            ORDER BY used_at DESC
-            LIMIT 100
-        `, [username]);
-        return { success: true, logs };
-    },
-
-    // 获取所有卡密使用记录（仅管理员可用）
-    async getUsageLogs(adminPassword) {
-        if (!authDb.validateAdmin(adminPassword)) {
-            return { success: false, message: '管理员密码错误' };
-        }
-
-        const logs = await db.all(`
-            SELECT key, username, used_at, status
-            FROM key_usage_logs
-            ORDER BY used_at DESC
-            LIMIT 100
-        `);
-        return { success: true, logs };
-    },
-
     // 获取用户的卡密列表
-    async getUserCardKeys(username) {
-        const cardKeys = await db.all(
-            'SELECT key, username, created_at, first_used_at FROM card_keys WHERE username = ? ORDER BY created_at DESC',
+    async getUserCardKeys(username, page = 1, pageSize = 10) {
+        // 首先获取总数
+        const totalCount = await db.get(
+            'SELECT COUNT(*) as count FROM card_keys WHERE username = ?',
             [username]
         );
-        return cardKeys.map(key => ({
-            ...key,
-            isUsed: !!key.first_used_at,
-            isExpired: key.first_used_at ? (Date.now() - key.first_used_at > this.KEY_EXPIRY_TIME) : false
-        }));
+
+        // 计算偏移量
+        const offset = (page - 1) * pageSize;
+
+        // 获取分页数据
+        const cardKeys = await db.all(
+            'SELECT key, username, created_at, first_used_at FROM card_keys WHERE username = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+            [username, pageSize, offset]
+        );
+
+        return {
+            cardKeys: cardKeys.map(key => ({
+                ...key,
+                isUsed: !!key.first_used_at
+            })),
+            pagination: {
+                total: totalCount.count,
+                current: page,
+                pageSize: pageSize,
+                totalPages: Math.ceil(totalCount.count / pageSize)
+            }
+        };
     }
 };
 

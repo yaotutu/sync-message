@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import { cardKeyDb } from '../database/sqlite.js';
 import { authDb } from '../database/sqlite.js';
+import { config } from '../config/config.js';
 
 // 生成随机卡密
 function generateKey() {
@@ -13,10 +14,10 @@ export const generateCardKeys = async (req, res) => {
         const count = parseInt(req.query.count) || 1;
         const username = req.headers['x-username'];
 
-        if (count < 1 || count > 10) {
+        if (count < 1 || count > config.cardKey.maxGenerateCount) {
             return res.status(400).json({
                 success: false,
-                message: '生成数量必须在1-10之间'
+                message: `生成数量必须在1-${config.cardKey.maxGenerateCount}之间`
             });
         }
 
@@ -81,12 +82,14 @@ export const validateCardKey = async (req, res) => {
 export const getUserCardKeys = async (req, res) => {
     try {
         const username = req.headers['x-username'];
+        const page = parseInt(req.query.page) || 1;
+        const pageSize = parseInt(req.query.pageSize) || 10;
 
-        const cardKeys = await cardKeyDb.getUserCardKeys(username);
+        const result = await cardKeyDb.getUserCardKeys(username, page, pageSize);
 
         res.json({
             success: true,
-            cardKeys
+            ...result
         });
     } catch (error) {
         console.error('获取卡密列表失败:', error);

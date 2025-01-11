@@ -14,5 +14,8 @@ export const config = {
     },
     messages: {
         maxMessagesPerUser: process.env.MAX_MESSAGES_PER_USER || 3 // 每个用户最多保存的消息数量
+    },
+    cardKey: {
+        maxGenerateCount: process.env.MAX_GENERATE_COUNT || 100 // 单次生成卡密的最大数量
     }
 };

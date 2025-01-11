@@ -134,6 +134,62 @@
             border-radius: 4px;
             white-space: pre-wrap;
             word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .key-list-container {
+            position: relative;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            padding: 5px 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.8;
+            z-index: 1;
+        }
+
+        .copy-btn:hover {
+            opacity: 1;
+        }
+
+        .copy-success {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border-radius: 4px;
+            display: none;
+            animation: fadeInOut 2s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% {
+                opacity: 0;
+            }
+
+            20% {
+                opacity: 1;
+            }
+
+            80% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
         }
 
         .tab-buttons {
@@ -256,6 +312,37 @@
         .key-date {
             color: #666;
         }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .pagination button:hover {
+            background: #f5f5f5;
+        }
+
+        .pagination button.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .pagination button:disabled {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
@@ -339,11 +426,15 @@
             <div class="panel-content">
                 <h3>生成卡密</h3>
                 <div class="form-group">
-                    <label for="keyCount">生成数量（1-10）</label>
-                    <input type="number" id="keyCount" min="1" max="10" value="1">
+                    <label for="keyCount">生成数量（1-100）</label>
+                    <input type="number" id="keyCount" min="1" max="100" value="1">
                 </div>
                 <button onclick="generateKeys()" class="btn">生成卡密</button>
-                <div id="generatedKeys" class="key-list"></div>
+                <div id="generateError" class="error-message"></div>
+                <div class="key-list-container">
+                    <button onclick="copyKeys()" class="copy-btn" style="display: none;">复制全部</button>
+                    <div id="generatedKeys" class="key-list"></div>
+                </div>
             </div>
 
             <div class="panel-content">
@@ -351,11 +442,16 @@
                 <div id="cardKeysList" class="list-container">
                     <!-- 卡密列表将在这里动态显示 -->
                 </div>
+                <div id="cardKeysPagination" class="pagination">
+                    <!-- 分页控件将在这里动态显示 -->
+                </div>
             </div>
 
             <button onclick="userLogout()" class="btn">退出登录</button>
         </div>
     </div>
+
+    <div id="copySuccess" class="copy-success">复制成功</div>
 
     <script>
         let currentUser = {
@@ -540,10 +636,17 @@
             }
         }
 
-        // 生成密钥
+        // 生成卡密
         async function generateKeys() {
             const count = document.getElementById('keyCount').value;
-            const keyList = document.getElementById('keyList');
+            const keyList = document.getElementById('generatedKeys');
+            const errorMsg = document.getElementById('generateError');
+            const copyBtn = document.querySelector('.copy-btn');
+
+            // 清除之前的错误信息和生成结果
+            errorMsg.style.display = 'none';
+            keyList.textContent = '';
+            copyBtn.style.display = 'none';
 
             try {
                 const response = await fetch(`/api/cardkey/generate?count=${count}`, {
@@ -556,13 +659,49 @@
                 const result = await response.json();
                 if (result.success) {
                     keyList.textContent = result.keys.join('\n');
+                    copyBtn.style.display = 'block'; // 显示复制按钮
                     // 刷新卡密列表
-                    await fetchCardKeys();
+                    await fetchCardKeys(1); // 生成新卡密后返回第一页
                 } else {
-                    keyList.textContent = '生成密钥失败：' + result.message;
+                    errorMsg.textContent = result.message;
+                    errorMsg.style.display = 'block';
                 }
             } catch (error) {
-                keyList.textContent = '生成密钥失败，请稍后重试';
+                errorMsg.textContent = '生成卡密失败，请稍后重试';
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        // 复制卡密
+        async function copyKeys() {
+            const keyList = document.getElementById('generatedKeys');
+            const successMsg = document.getElementById('copySuccess');
+
+            try {
+                await navigator.clipboard.writeText(keyList.textContent);
+
+                // 显示复制成功提示
+                successMsg.style.display = 'block';
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 2000);
+            } catch (err) {
+                console.error('复制失败:', err);
+                // 如果clipboard API不可用，使用传统方法
+                const textArea = document.createElement('textarea');
+                textArea.value = keyList.textContent;
+                document.body.appendChild(textArea);
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    successMsg.style.display = 'block';
+                    setTimeout(() => {
+                        successMsg.style.display = 'none';
+                    }, 2000);
+                } catch (err) {
+                    console.error('复制失败:', err);
+                }
+                document.body.removeChild(textArea);
             }
         }
 
@@ -619,9 +758,9 @@
         }
 
         // 获取用户的卡密列表
-        async function fetchCardKeys() {
+        async function fetchCardKeys(page = 1, pageSize = 10) {
             try {
-                const response = await fetch('/api/cardkey/list', {
+                const response = await fetch(`/api/cardkey/list?page=${page}&pageSize=${pageSize}`, {
                     headers: {
                         'x-username': currentUser.username,
                         'x-password': currentUser.password
@@ -630,6 +769,7 @@
                 const data = await response.json();
                 if (data.success) {
                     displayCardKeys(data.cardKeys);
+                    displayPagination(data.pagination);
                 } else {
                     console.error('获取卡密列表失败:', data.message);
                 }
@@ -652,8 +792,8 @@
                 const item = document.createElement('div');
                 item.className = 'list-item';
 
-                const status = key.isExpired ? '已过期' : (key.isUsed ? '已使用' : '未使用');
-                const statusClass = key.isExpired ? 'expired' : (key.isUsed ? 'used' : 'unused');
+                const status = key.isUsed ? '已使用' : '未使用';
+                const statusClass = key.isUsed ? 'used' : 'unused';
 
                 item.innerHTML = `
                     <div class="item-info">
@@ -668,6 +808,35 @@
 
                 container.appendChild(item);
             });
+        }
+
+        // 展示分页控件
+        function displayPagination(pagination) {
+            const container = document.getElementById('cardKeysPagination');
+            container.innerHTML = '';
+
+            // 上一页按钮
+            const prevButton = document.createElement('button');
+            prevButton.textContent = '上一页';
+            prevButton.disabled = pagination.current === 1;
+            prevButton.onclick = () => fetchCardKeys(pagination.current - 1, pagination.pageSize);
+            container.appendChild(prevButton);
+
+            // 页码按钮
+            for (let i = 1; i <= pagination.totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = pagination.current === i ? 'active' : '';
+                pageButton.onclick = () => fetchCardKeys(i, pagination.pageSize);
+                container.appendChild(pageButton);
+            }
+
+            // 下一页按钮
+            const nextButton = document.createElement('button');
+            nextButton.textContent = '下一页';
+            nextButton.disabled = pagination.current === pagination.totalPages;
+            nextButton.onclick = () => fetchCardKeys(pagination.current + 1, pagination.pageSize);
+            container.appendChild(nextButton);
         }
     </script>
 </body>
