@@ -216,6 +216,46 @@
         .btn-danger:hover {
             background-color: #c82333;
         }
+
+        .key-value {
+            font-family: monospace;
+            font-size: 14px;
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+
+        .key-details {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .key-status {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .key-status.unused {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .key-status.used {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .key-status.expired {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .key-date {
+            color: #666;
+        }
     </style>
 </head>
 
@@ -296,15 +336,21 @@
         <!-- 用户面板 -->
         <div id="userPanel" class="panel-section">
             <h2>用户面板</h2>
-            <!-- 生成密钥 -->
             <div class="panel-content">
-                <h3>生成密钥</h3>
+                <h3>生成卡密</h3>
                 <div class="form-group">
-                    <label for="keyCount">生成数量</label>
-                    <input type="number" id="keyCount" value="1" min="1" max="10">
+                    <label for="keyCount">生成数量（1-10）</label>
+                    <input type="number" id="keyCount" min="1" max="10" value="1">
                 </div>
-                <button onclick="generateKeys()" class="btn">生成密钥</button>
-                <div id="keyList" class="key-list"></div>
+                <button onclick="generateKeys()" class="btn">生成卡密</button>
+                <div id="generatedKeys" class="key-list"></div>
+            </div>
+
+            <div class="panel-content">
+                <h3>我的卡密列表</h3>
+                <div id="cardKeysList" class="list-container">
+                    <!-- 卡密列表将在这里动态显示 -->
+                </div>
             </div>
 
             <button onclick="userLogout()" class="btn">退出登录</button>
@@ -390,6 +436,8 @@
                     };
                     document.getElementById('loginSection').style.display = 'none';
                     document.getElementById('userPanel').style.display = 'block';
+                    // 获取卡密列表
+                    await fetchCardKeys();
                 } else {
                     loginError.textContent = result.message || '用户名或密码错误';
                     loginError.style.display = 'block';
@@ -508,6 +556,8 @@
                 const result = await response.json();
                 if (result.success) {
                     keyList.textContent = result.keys.join('\n');
+                    // 刷新卡密列表
+                    await fetchCardKeys();
                 } else {
                     keyList.textContent = '生成密钥失败：' + result.message;
                 }
@@ -566,6 +616,58 @@
             document.getElementById('keyList').textContent = '';
             document.getElementById('loginSection').style.display = 'block';
             document.getElementById('userPanel').style.display = 'none';
+        }
+
+        // 获取用户的卡密列表
+        async function fetchCardKeys() {
+            try {
+                const response = await fetch('/api/cardkey/list', {
+                    headers: {
+                        'x-username': currentUser.username,
+                        'x-password': currentUser.password
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    displayCardKeys(data.cardKeys);
+                } else {
+                    console.error('获取卡密列表失败:', data.message);
+                }
+            } catch (error) {
+                console.error('获取卡密列表失败:', error);
+            }
+        }
+
+        // 展示卡密列表
+        function displayCardKeys(cardKeys) {
+            const container = document.getElementById('cardKeysList');
+            container.innerHTML = '';
+
+            if (cardKeys.length === 0) {
+                container.innerHTML = '<div class="list-item">暂无卡密</div>';
+                return;
+            }
+
+            cardKeys.forEach(key => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+
+                const status = key.isExpired ? '已过期' : (key.isUsed ? '已使用' : '未使用');
+                const statusClass = key.isExpired ? 'expired' : (key.isUsed ? 'used' : 'unused');
+
+                item.innerHTML = `
+                    <div class="item-info">
+                        <div class="key-value">${key.key}</div>
+                        <div class="key-details">
+                            <span class="key-status ${statusClass}">${status}</span>
+                            <span class="key-date">创建时间: ${new Date(key.created_at).toLocaleString()}</span>
+                            ${key.first_used_at ? `<span class="key-date">首次使用: ${new Date(key.first_used_at).toLocaleString()}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(item);
+            });
         }
     </script>
 </body>

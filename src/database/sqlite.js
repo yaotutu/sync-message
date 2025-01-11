@@ -279,6 +279,19 @@ export const cardKeyDb = {
             LIMIT 100
         `);
         return { success: true, logs };
+    },
+
+    // 获取用户的卡密列表
+    async getUserCardKeys(username) {
+        const cardKeys = await db.all(
+            'SELECT key, username, created_at, first_used_at FROM card_keys WHERE username = ? ORDER BY created_at DESC',
+            [username]
+        );
+        return cardKeys.map(key => ({
+            ...key,
+            isUsed: !!key.first_used_at,
+            isExpired: key.first_used_at ? (Date.now() - key.first_used_at > this.KEY_EXPIRY_TIME) : false
+        }));
     }
 };
 

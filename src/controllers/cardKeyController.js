@@ -75,4 +75,24 @@ export const validateCardKey = async (req, res) => {
             message: '验证卡密失败'
         });
     }
+};
+
+// 获取用户的卡密列表
+export const getUserCardKeys = async (req, res) => {
+    try {
+        const username = req.headers['x-username'];
+
+        const cardKeys = await cardKeyDb.getUserCardKeys(username);
+
+        res.json({
+            success: true,
+            cardKeys
+        });
+    } catch (error) {
+        console.error('获取卡密列表失败:', error);
+        res.status(500).json({
+            success: false,
+            message: '获取卡密列表失败'
+        });
+    }
 }; 

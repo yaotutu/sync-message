@@ -1,5 +1,5 @@
 import express from 'express';
-import { generateCardKeys, validateCardKey } from '../controllers/cardKeyController.js';
+import { generateCardKeys, validateCardKey, getUserCardKeys } from '../controllers/cardKeyController.js';
 import { requireAuth } from '../middleware/auth.js';
 import { authDb, cardKeyDb } from '../database/sqlite.js';
 
@@ -74,6 +74,9 @@ router.get('/generate', requireAuth, generateCardKeys);
 
 // 验证卡密（不需要认证，因为是给用户使用的）
 router.post('/validate', validateCardKey);
+
+// 获取用户的卡密列表（需要认证）
+router.get('/list', requireAuth, getUserCardKeys);
 
 // 添加用户（需要管理员密码）
 router.post('/users', async (req, res) => {
