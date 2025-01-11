@@ -288,7 +288,7 @@
                 const message = JSON.parse(content);
                 return `
                     <div>发送者：${message.sender || '未知'}</div>
-                    <div>消息：${message.message || '无内容'}</div>
+                    <div>消息：${message.sms_content || '无内容'}</div>
                 `;
             } catch (error) {
                 return content;

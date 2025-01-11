@@ -73,7 +73,10 @@ export const initDatabase = async () => {
             CREATE TABLE IF NOT EXISTS messages (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
-                content TEXT NOT NULL,
+                raw_data TEXT NOT NULL,  -- 原始数据
+                sms_content TEXT NOT NULL,  -- 短信正文
+                sender TEXT,
+                rec_time TEXT,
                 received_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
                 FOREIGN KEY (username) REFERENCES users(username)
             )
@@ -283,16 +286,67 @@ export const cardKeyDb = {
 export const messageDb = {
     // 添加新消息
     async add(username, content) {
-        await db.run(
-            'INSERT INTO messages (username, content) VALUES (?, ?)',
-            [username, content]
-        );
+        // 开始事务
+        await db.run('BEGIN TRANSACTION');
+
+        try {
+            // 解析消息内容
+            let messageData;
+            try {
+                messageData = JSON.parse(content);
+            } catch (error) {
+                messageData = {
+                    sms_content: content,
+                    sender: null,
+                    rec_time: null
+                };
+            }
+
+            // 插入新消息
+            await db.run(
+                'INSERT INTO messages (username, raw_data, sms_content, sender, rec_time) VALUES (?, ?, ?, ?, ?)',
+                [
+                    username,
+                    content,  // 原始数据
+                    messageData.sms_content || content,  // 短信正文
+                    messageData.sender || null,
+                    messageData.rec_time || null
+                ]
+            );
+
+            // 获取当前用户的消息数量
+            const countResult = await db.get(
+                'SELECT COUNT(*) as count FROM messages WHERE username = ?',
+                [username]
+            );
+
+            // 如果超过配置的最大数量，删除最旧的消息
+            if (countResult.count > config.messages.maxMessagesPerUser) {
+                await db.run(`
+                    DELETE FROM messages
+                    WHERE id IN (
+                        SELECT id
+                        FROM messages
+                        WHERE username = ?
+                        ORDER BY received_at ASC
+                        LIMIT ?
+                    )
+                `, [username, countResult.count - config.messages.maxMessagesPerUser]);
+            }
+
+            // 提交事务
+            await db.run('COMMIT');
+        } catch (error) {
+            // 回滚事务
+            await db.run('ROLLBACK');
+            throw error;
+        }
     },
 
     // 获取用户的消息
     async getMessages(username) {
         const messages = await db.all(`
-            SELECT content, received_at
+            SELECT raw_data as content, sms_content, received_at
             FROM messages
             WHERE username = ?
             ORDER BY received_at DESC
@@ -315,4 +369,4 @@ export const messageDb = {
         `);
         return { success: true, messages };
     }
-}; 
+};
