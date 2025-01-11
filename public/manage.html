@@ -316,20 +316,29 @@
         .pagination {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            align-items: center;
+            gap: 5px;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .pagination button {
-            padding: 5px 10px;
-            border: 1px solid #ddd;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 8px;
+            border: 1px solid #d9d9d9;
             background: white;
             border-radius: 4px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
         }
 
-        .pagination button:hover {
-            background: #f5f5f5;
+        .pagination button:hover:not(:disabled) {
+            border-color: #4CAF50;
+            color: #4CAF50;
         }
 
         .pagination button.active {
@@ -340,8 +349,29 @@
 
         .pagination button:disabled {
             background: #f5f5f5;
-            color: #999;
+            color: #d9d9d9;
             cursor: not-allowed;
+            border-color: #d9d9d9;
+        }
+
+        .pagination .page-jump {
+            display: flex;
+            align-items: center;
+            margin: 0 8px;
+        }
+
+        .pagination .page-jump input {
+            width: 50px;
+            height: 32px;
+            margin: 0 8px;
+            text-align: center;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+        }
+
+        .pagination .ellipsis {
+            color: #999;
+            margin: 0 4px;
         }
     </style>
 </head>
@@ -817,13 +847,39 @@
 
             // 上一页按钮
             const prevButton = document.createElement('button');
-            prevButton.textContent = '上一页';
+            prevButton.innerHTML = '&lt;';
+            prevButton.title = '上一页';
             prevButton.disabled = pagination.current === 1;
             prevButton.onclick = () => fetchCardKeys(pagination.current - 1, pagination.pageSize);
             container.appendChild(prevButton);
 
             // 页码按钮
-            for (let i = 1; i <= pagination.totalPages; i++) {
+            const maxButtons = 5; // 最多显示的页码按钮数
+            let startPage = Math.max(1, pagination.current - Math.floor(maxButtons / 2));
+            let endPage = Math.min(pagination.totalPages, startPage + maxButtons - 1);
+
+            // 调整startPage，确保显示足够的按钮
+            if (endPage - startPage + 1 < maxButtons) {
+                startPage = Math.max(1, endPage - maxButtons + 1);
+            }
+
+            // 第一页
+            if (startPage > 1) {
+                const firstButton = document.createElement('button');
+                firstButton.textContent = '1';
+                firstButton.onclick = () => fetchCardKeys(1, pagination.pageSize);
+                container.appendChild(firstButton);
+
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    ellipsis.className = 'ellipsis';
+                    container.appendChild(ellipsis);
+                }
+            }
+
+            // 中间的页码按钮
+            for (let i = startPage; i <= endPage; i++) {
                 const pageButton = document.createElement('button');
                 pageButton.textContent = i;
                 pageButton.className = pagination.current === i ? 'active' : '';
@@ -831,12 +887,45 @@
                 container.appendChild(pageButton);
             }
 
+            // 最后一页
+            if (endPage < pagination.totalPages) {
+                if (endPage < pagination.totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    ellipsis.className = 'ellipsis';
+                    container.appendChild(ellipsis);
+                }
+
+                const lastButton = document.createElement('button');
+                lastButton.textContent = pagination.totalPages;
+                lastButton.onclick = () => fetchCardKeys(pagination.totalPages, pagination.pageSize);
+                container.appendChild(lastButton);
+            }
+
             // 下一页按钮
             const nextButton = document.createElement('button');
-            nextButton.textContent = '下一页';
+            nextButton.innerHTML = '&gt;';
+            nextButton.title = '下一页';
             nextButton.disabled = pagination.current === pagination.totalPages;
             nextButton.onclick = () => fetchCardKeys(pagination.current + 1, pagination.pageSize);
             container.appendChild(nextButton);
+
+            // 跳转页码输入框
+            const pageJump = document.createElement('div');
+            pageJump.className = 'page-jump';
+            pageJump.innerHTML = `
+                跳至<input type="number" min="1" max="${pagination.totalPages}" value="${pagination.current}">页
+            `;
+            const jumpInput = pageJump.querySelector('input');
+            jumpInput.onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    const page = parseInt(jumpInput.value);
+                    if (page >= 1 && page <= pagination.totalPages) {
+                        fetchCardKeys(page, pagination.pageSize);
+                    }
+                }
+            };
+            container.appendChild(pageJump);
         }
     </script>
 </body>

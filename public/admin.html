@@ -142,16 +142,16 @@
 
 <body>
     <div class="admin-container">
-        <h1>管理后台</h1>
+        <h1>消息同步系统管理后台</h1>
 
         <!-- 管理员登录 -->
         <div id="loginSection" class="admin-section">
-            <h2>管理员登录</h2>
+            <h2>管理员验证</h2>
             <div class="form-group">
-                <label for="adminPassword">管理员密码</label>
-                <input type="password" id="adminPassword" placeholder="请输入管理员密码">
+                <label for="adminPassword">管理员密钥</label>
+                <input type="password" id="adminPassword" placeholder="请输入管理员密钥">
             </div>
-            <button onclick="login()" class="btn">登录</button>
+            <button onclick="login()" class="btn">验证</button>
             <div id="loginError" class="error-message"></div>
         </div>
 

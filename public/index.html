@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>消息同步</title>
+    <title>消息同步系统</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -125,15 +125,15 @@
 
 <body>
     <div class="container">
-        <h1>消息同步</h1>
+        <h1>消息同步系统</h1>
 
         <!-- 登录区域 -->
         <div id="loginSection" class="login-section">
             <div class="form-group">
-                <label for="cardKey">请输入卡密</label>
-                <input type="text" id="cardKey" placeholder="输入卡密">
+                <label for="cardKey">卡密</label>
+                <input type="text" id="cardKey" placeholder="请输入您的卡密">
             </div>
-            <button onclick="login()" class="btn">登录</button>
+            <button onclick="login()" class="btn">验证卡密</button>
             <div id="loginError" class="error-message"></div>
         </div>
 
@@ -142,7 +142,7 @@
             <div class="user-info">
                 <span class="user-name" id="userName"></span>
                 <span class="countdown" id="countdown"></span>
-                <button onclick="logout()" class="btn">退出登录</button>
+                <button onclick="logout()" class="btn">结束会话</button>
             </div>
             <div id="messageList" class="message-list">
                 <!-- 消息列表将在这里动态显示 -->
