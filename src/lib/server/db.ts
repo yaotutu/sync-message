@@ -58,19 +58,14 @@ function generateWebhookKey() {
 // 生成卡密
 function generateCardKey() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const segments = 4;
-    const segmentLength = 4;
-    const parts: string[] = [];
+    const length = 16; // 总长度16位
+    let key = '';
 
-    for (let i = 0; i < segments; i++) {
-        let segment = '';
-        for (let j = 0; j < segmentLength; j++) {
-            segment += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        parts.push(segment);
+    for (let i = 0; i < length; i++) {
+        key += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    return parts.join('-');
+    return key;
 }
 
 // 验证管理员密码
