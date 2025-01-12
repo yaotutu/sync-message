@@ -11,8 +11,10 @@ export default function CardKeyManagePage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
+        setIsMounted(true);
         // 检查本地存储的登录信息
         const savedUsername = localStorage.getItem('username');
         const savedPassword = localStorage.getItem('password');
@@ -116,6 +118,7 @@ export default function CardKeyManagePage() {
     };
 
     const formatTime = (ms: number) => {
+        if (!isMounted) return ''; // 防止服务端渲染时的格式化
         const minutes = Math.floor(ms / 60000);
         const seconds = Math.floor((ms % 60000) / 1000);
         return `${minutes}分${seconds}秒`;
@@ -138,6 +141,10 @@ export default function CardKeyManagePage() {
             bgColor: 'bg-red-50'
         };
     };
+
+    if (!isMounted) {
+        return null; // 或者返回一个加载占位符
+    }
 
     if (loading) {
         return <div className="p-4">加载中...</div>;
@@ -264,7 +271,7 @@ export default function CardKeyManagePage() {
                                     </div>
                                     {cardKey.usedAt && (
                                         <div className="text-sm text-gray-500">
-                                            使用时间: {new Date(cardKey.usedAt).toLocaleString()}
+                                            使用时间: {isMounted ? new Date(cardKey.usedAt).toLocaleString() : ''}
                                         </div>
                                     )}
                                 </div>
