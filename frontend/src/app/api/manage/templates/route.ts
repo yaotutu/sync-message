@@ -1,4 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/database';
+
+interface MessageTemplate {
+    id: number;
+    name: string;
+    content: string;
+    createdAt: string;
+}
 
 export async function GET(request: NextRequest) {
     try {
@@ -17,23 +25,27 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cardkey/templates`, {
-            headers: {
-                'x-admin-password': adminPassword,
-                'Content-Type': 'application/json'
-            }
-        });
+        try {
+            const templates = await db.all<MessageTemplate[]>(`
+                SELECT id, name, content, created_at as createdAt
+                FROM message_templates
+                ORDER BY created_at DESC
+            `);
 
-        if (!response.ok) {
-            const errorData = await response.json();
+            return NextResponse.json({
+                success: true,
+                templates: templates.map(template => ({
+                    ...template,
+                    createdAt: new Date(template.createdAt).getTime()
+                }))
+            });
+        } catch (error) {
+            console.error('Database error:', error);
             return NextResponse.json(
-                { success: false, message: errorData.message || '获取模板列表失败' },
-                { status: response.status }
+                { success: false, message: '数据库操作失败' },
+                { status: 500 }
             );
         }
-
-        const data = await response.json();
-        return NextResponse.json(data);
     } catch (error) {
         console.error('Get templates error:', error);
         return NextResponse.json(
@@ -68,25 +80,46 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cardkey/templates`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-admin-password': adminPassword
-            },
-            body: JSON.stringify({ name, content })
-        });
+        try {
+            // 检查模板名称是否已存在
+            const existingTemplate = await db.get('SELECT id FROM message_templates WHERE name = ?', [name]);
+            if (existingTemplate) {
+                return NextResponse.json(
+                    { success: false, message: '模板名称已存在' },
+                    { status: 400 }
+                );
+            }
 
-        if (!response.ok) {
-            const errorData = await response.json();
+            // 插入新模板
+            const result = await db.run(
+                `INSERT INTO message_templates (name, content, created_at) VALUES (?, ?, ?)`,
+                [name, content, new Date().toISOString()]
+            );
+
+            const newTemplate = await db.get<MessageTemplate>(
+                `SELECT id, name, content, created_at as createdAt
+                FROM message_templates WHERE id = ?`,
+                [result.lastID]
+            );
+
+            if (!newTemplate) {
+                throw new Error('Failed to retrieve newly created template');
+            }
+
+            return NextResponse.json({
+                success: true,
+                template: {
+                    ...newTemplate,
+                    createdAt: new Date(newTemplate.createdAt).getTime()
+                }
+            });
+        } catch (error) {
+            console.error('Database error:', error);
             return NextResponse.json(
-                { success: false, message: errorData.message || '添加模板失败' },
-                { status: response.status }
+                { success: false, message: '数据库操作失败' },
+                { status: 500 }
             );
         }
-
-        const data = await response.json();
-        return NextResponse.json(data);
     } catch (error) {
         console.error('Add template error:', error);
         return NextResponse.json(

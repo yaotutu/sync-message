@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/database';
 
 export async function DELETE(
     request: NextRequest,
@@ -21,27 +22,37 @@ export async function DELETE(
         }
 
         const { username } = params;
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/cardkey/users/${username}`,
-            {
-                method: 'DELETE',
-                headers: {
-                    'x-admin-password': adminPassword,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        if (!response.ok) {
-            const errorData = await response.json();
+        if (!username) {
             return NextResponse.json(
-                { success: false, message: errorData.message || '删除用户失败' },
-                { status: response.status }
+                { success: false, message: '请提供用户名' },
+                { status: 400 }
             );
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        try {
+            // 检查用户是否存在
+            const user = await db.get('SELECT id FROM webhook_users WHERE username = ?', [username]);
+            if (!user) {
+                return NextResponse.json(
+                    { success: false, message: '用户不存在' },
+                    { status: 404 }
+                );
+            }
+
+            // 删除用户
+            await db.run('DELETE FROM webhook_users WHERE username = ?', [username]);
+
+            return NextResponse.json({
+                success: true,
+                message: '用户删除成功'
+            });
+        } catch (error) {
+            console.error('Database error:', error);
+            return NextResponse.json(
+                { success: false, message: '数据库操作失败' },
+                { status: 500 }
+            );
+        }
     } catch (error) {
         console.error('Delete user error:', error);
         return NextResponse.json(

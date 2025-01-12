@@ -12,21 +12,16 @@ export interface MessageTemplate {
     createdAt: number;
 }
 
-export interface ManageResponse {
-    success: boolean;
-    message?: string;
-    users?: WebhookUser[];
-    templates?: MessageTemplate[];
-}
-
 export interface WebhookUserResponse {
     success: boolean;
     message?: string;
+    users?: WebhookUser[];
     user?: WebhookUser;
 }
 
 export interface MessageTemplateResponse {
     success: boolean;
     message?: string;
+    templates?: MessageTemplate[];
     template?: MessageTemplate;
 } 

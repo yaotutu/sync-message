@@ -1,15 +1,21 @@
 export interface Message {
+    id: number;
     content: string;
-    sms_content: string;
-    rec_time: string | null;
-    received_at: number;
+    type: 'text' | 'image' | 'file';
+    createdAt: number;
 }
 
 export interface CardKeyValidateResponse {
     success: boolean;
-    username?: string;
     message?: string;
+    username?: string;
     expired?: boolean;
     expiresIn?: number;
     firstUsedAt?: number;
+}
+
+export interface MessageResponse {
+    success: boolean;
+    message?: string;
+    messages?: Message[];
 } 

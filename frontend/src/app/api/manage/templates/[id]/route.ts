@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/database';
 
 export async function DELETE(
     request: NextRequest,
@@ -20,28 +21,38 @@ export async function DELETE(
             );
         }
 
-        const { id } = params;
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/cardkey/templates/${id}`,
-            {
-                method: 'DELETE',
-                headers: {
-                    'x-admin-password': adminPassword,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        if (!response.ok) {
-            const errorData = await response.json();
+        const id = parseInt(params.id);
+        if (isNaN(id)) {
             return NextResponse.json(
-                { success: false, message: errorData.message || '删除模板失败' },
-                { status: response.status }
+                { success: false, message: '无效的模板ID' },
+                { status: 400 }
             );
         }
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        try {
+            // 检查模板是否存在
+            const template = await db.get('SELECT id FROM message_templates WHERE id = ?', [id]);
+            if (!template) {
+                return NextResponse.json(
+                    { success: false, message: '模板不存在' },
+                    { status: 404 }
+                );
+            }
+
+            // 删除模板
+            await db.run('DELETE FROM message_templates WHERE id = ?', [id]);
+
+            return NextResponse.json({
+                success: true,
+                message: '模板删除成功'
+            });
+        } catch (error) {
+            console.error('Database error:', error);
+            return NextResponse.json(
+                { success: false, message: '数据库操作失败' },
+                { status: 500 }
+            );
+        }
     } catch (error) {
         console.error('Delete template error:', error);
         return NextResponse.json(
