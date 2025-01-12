@@ -2,42 +2,44 @@
 
 import { useState } from 'react';
 import { WebhookUser } from '@/types/manage';
-import WebhookUserList from '@/components/manage/WebhookUserList';
 
 export default function ManagePage() {
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [users, setUsers] = useState<WebhookUser[]>([]);
     const [password, setPassword] = useState('');
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [error, setError] = useState('');
+    const [users, setUsers] = useState<WebhookUser[]>([]);
     const [newUsername, setNewUsername] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
-    const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const login = async () => {
-        if (!password) {
+        if (!password.trim()) {
             setError('请输入管理员密码');
             return;
         }
 
         setIsLoading(true);
+        setError('');
         try {
             const response = await fetch('/api/manage/login', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ password: password.trim() }),
             });
 
             const data = await response.json();
             if (data.success) {
                 setIsLoggedIn(true);
                 setError('');
-                loadData();
+                await loadData();
             } else {
-                setError(data.message || '登录失败');
+                setError(data.message || '管理员密码错误');
             }
         } catch (error) {
             console.error('Login error:', error);
-            setError('登录失败，请稍后重试');
+            setError('网络错误，请检查网络连接后重试');
         } finally {
             setIsLoading(false);
         }
@@ -45,210 +47,270 @@ export default function ManagePage() {
 
     const loadData = async () => {
         setIsLoading(true);
+        setError('');
         try {
             const response = await fetch('/api/manage/users', {
                 headers: {
-                    'x-admin-password': password
-                }
+                    'x-admin-password': password,
+                },
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
             const data = await response.json();
             if (data.success) {
-                setUsers(data.users || []);
-                setError('');
+                setUsers(data.data || []);
             } else {
-                setError(data.message || '加载数据失败');
+                setError(data.message || '加载用户列表失败');
             }
         } catch (error) {
-            console.error('Load data error:', error);
-            setError('加载数据失败，请稍后重试');
+            console.error('Load users error:', error);
+            if (error instanceof Error && error.message.includes('401')) {
+                setIsLoggedIn(false);
+                setError('登录已过期，请重新登录');
+            } else {
+                setError('网络错误，请检查网络连接后重试');
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     const addUser = async () => {
-        if (!newUsername || !newUserPassword) {
-            setError('请输入用户名和密码');
+        const trimmedUsername = newUsername.trim();
+        const trimmedPassword = newUserPassword.trim();
+
+        if (!trimmedUsername || !trimmedPassword) {
+            setError('用户名和密码不能为空');
             return;
         }
 
         setIsLoading(true);
+        setError('');
         try {
             const response = await fetch('/api/manage/users', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-admin-password': password
+                    'x-admin-password': password,
                 },
                 body: JSON.stringify({
-                    username: newUsername,
-                    password: newUserPassword
-                })
+                    username: trimmedUsername,
+                    password: trimmedPassword,
+                }),
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
             const data = await response.json();
             if (data.success) {
                 setNewUsername('');
                 setNewUserPassword('');
-                loadData();
-                setError('');
+                await loadData();
             } else {
                 setError(data.message || '添加用户失败');
             }
         } catch (error) {
             console.error('Add user error:', error);
-            setError('添加用户失败，请稍后重试');
+            if (error instanceof Error && error.message.includes('401')) {
+                setIsLoggedIn(false);
+                setError('登录已过期，请重新登录');
+            } else {
+                setError('网络错误，请检查网络连接后重试');
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     const deleteUser = async (username: string) => {
-        if (!confirm(`确定要删除用户 ${username} 吗？`)) {
+        if (!confirm(`确定要删除用户 ${username} 吗？此操作不可恢复。`)) {
             return;
         }
 
         setIsLoading(true);
+        setError('');
         try {
-            const response = await fetch(`/api/manage/users/${username}`, {
+            const response = await fetch(`/api/manage/users?username=${encodeURIComponent(username)}`, {
                 method: 'DELETE',
                 headers: {
-                    'x-admin-password': password
-                }
+                    'x-admin-password': password,
+                },
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
             const data = await response.json();
             if (data.success) {
-                loadData();
-                setError('');
+                await loadData();
             } else {
                 setError(data.message || '删除用户失败');
             }
         } catch (error) {
             console.error('Delete user error:', error);
-            setError('删除用户失败，请稍后重试');
+            if (error instanceof Error && error.message.includes('401')) {
+                setIsLoggedIn(false);
+                setError('登录已过期，请重新登录');
+            } else {
+                setError('网络错误，请检查网络连接后重试');
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
-    if (!isLoggedIn) {
-        return (
-            <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
-                <div className="relative py-3 sm:max-w-xl sm:mx-auto">
-                    <div className="relative px-4 py-10 bg-white mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
-                        <div className="max-w-md mx-auto">
-                            <div className="divide-y divide-gray-200">
-                                <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
-                                    <div className="flex flex-col">
-                                        <label className="leading-loose">管理员密码</label>
-                                        <input
-                                            type="password"
-                                            className="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-300 rounded-md focus:outline-none text-gray-600"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && login()}
-                                            placeholder="请输入管理员密码"
-                                        />
-                                    </div>
-                                    {error && (
-                                        <div className="text-red-500 text-sm mt-2">
-                                            {error}
-                                        </div>
-                                    )}
-                                    <button
-                                        className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        onClick={login}
-                                        disabled={isLoading}
-                                    >
-                                        {isLoading ? '登录中...' : '登录'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    const copyWebhookKey = async (webhookKey: string) => {
+        try {
+            await navigator.clipboard.writeText(webhookKey);
+            const prevError = error;
+            setError('Webhook Key 已复制到剪贴板');
+            setTimeout(() => {
+                setError(prevError);
+            }, 2000);
+        } catch (err) {
+            console.error('Copy failed:', err);
+            setError('复制失败，请手动复制');
+        }
+    };
 
     return (
-        <div className="min-h-screen bg-gray-100 py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {error && (
-                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                        {error}
-                    </div>
-                )}
-
-                <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
-                    <div className="px-4 py-5 sm:p-6">
-                        <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                            添加用户
-                        </h3>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    用户名
-                                </label>
-                                <input
-                                    type="text"
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    value={newUsername}
-                                    onChange={(e) => setNewUsername(e.target.value)}
-                                    placeholder="请输入用户名"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">
-                                    密码
-                                </label>
-                                <input
-                                    type="password"
-                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                    value={newUserPassword}
-                                    onChange={(e) => setNewUserPassword(e.target.value)}
-                                    placeholder="请输入密码"
-                                />
-                            </div>
-                        </div>
-                        <div className="mt-4">
-                            <button
-                                className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                onClick={addUser}
+        <div className="min-h-screen bg-gray-100 py-8 px-4">
+            <div className="max-w-4xl mx-auto">
+                {!isLoggedIn ? (
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h2 className="text-2xl font-bold mb-4">管理员登录</h2>
+                        <div className="space-y-4">
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && login()}
+                                placeholder="请输入管理员密码"
+                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100"
                                 disabled={isLoading}
+                            />
+                            <button
+                                onClick={login}
+                                disabled={isLoading}
+                                className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300 transition-all"
                             >
-                                {isLoading ? '添加中...' : '添加用户'}
+                                {isLoading ? '登录中...' : '登录'}
                             </button>
+                            {error && (
+                                <div className="text-red-500 text-sm mt-2">{error}</div>
+                            )}
                         </div>
                     </div>
-
-                    <div className="px-4 py-5 sm:p-6">
-                        <div className="sm:flex sm:items-center">
-                            <div className="sm:flex-auto">
-                                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                                    用户列表
-                                </h3>
+                ) : (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h2 className="text-2xl font-bold mb-4">用户管理</h2>
+                            <div className="space-y-4">
+                                <div className="flex gap-4">
+                                    <input
+                                        type="text"
+                                        value={newUsername}
+                                        onChange={(e) => setNewUsername(e.target.value)}
+                                        placeholder="用户名"
+                                        className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100"
+                                        disabled={isLoading}
+                                    />
+                                    <input
+                                        type="password"
+                                        value={newUserPassword}
+                                        onChange={(e) => setNewUserPassword(e.target.value)}
+                                        placeholder="密码"
+                                        className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100"
+                                        disabled={isLoading}
+                                    />
+                                    <button
+                                        onClick={addUser}
+                                        disabled={isLoading}
+                                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:bg-green-300 transition-all whitespace-nowrap"
+                                    >
+                                        {isLoading ? '添加中...' : '添加用户'}
+                                    </button>
+                                </div>
+                                {error && (
+                                    <div className="text-red-500 text-sm">{error}</div>
+                                )}
                             </div>
-                            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                            <div className="p-6 pb-4 flex justify-between items-center">
+                                <h3 className="text-xl font-bold">用户列表</h3>
                                 <button
-                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                     onClick={loadData}
+                                    disabled={isLoading}
+                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300 transition-all"
                                 >
-                                    刷新
+                                    {isLoading ? '刷新中...' : '刷新'}
                                 </button>
                             </div>
-                        </div>
-                        <div className="mt-4">
-                            <WebhookUserList
-                                users={users}
-                                onRefresh={loadData}
-                                onDeleteUser={deleteUser}
-                            />
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                用户名
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Webhook Key
+                                            </th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                创建时间
+                                            </th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                操作
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-200">
+                                        {users.map((user) => (
+                                            <tr key={user.username}>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {user.username}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center space-x-2">
+                                                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                                                            {user.webhookKey}
+                                                        </code>
+                                                        <button
+                                                            onClick={() => copyWebhookKey(user.webhookKey)}
+                                                            className="text-blue-500 hover:text-blue-700"
+                                                        >
+                                                            复制
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                    {new Date(user.createdAt).toLocaleString()}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                    <button
+                                                        onClick={() => deleteUser(user.username)}
+                                                        disabled={isLoading}
+                                                        className="text-red-500 hover:text-red-700 disabled:text-red-300"
+                                                    >
+                                                        删除
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

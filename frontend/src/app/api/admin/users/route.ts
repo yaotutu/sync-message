@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authDb } from '@/lib/database';
+import { validateAdminPassword, getUsers, addUser, deleteUser } from '@/lib/server/db';
 
 // 获取用户列表
 export async function GET(request: NextRequest) {
     try {
         const adminPassword = request.headers.get('x-admin-password');
-        if (!adminPassword) {
+        if (!adminPassword || !(await validateAdminPassword(adminPassword))) {
             return NextResponse.json(
-                { success: false, message: '未提供管理员密码' },
+                { success: false, message: '管理员密码错误' },
                 { status: 401 }
             );
         }
 
-        const result = await authDb.getUsers(adminPassword);
+        const result = await getUsers();
         return NextResponse.json(result);
     } catch (error) {
-        console.error('Error getting users:', error);
+        console.error('Get users error:', error);
         return NextResponse.json(
-            { success: false, message: '获取用户列表失败' },
+            { success: false, message: '获取用户列表失败，请稍后重试' },
             { status: 500 }
         );
     }
@@ -27,9 +27,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const adminPassword = request.headers.get('x-admin-password');
-        if (!adminPassword) {
+        if (!adminPassword || !(await validateAdminPassword(adminPassword))) {
             return NextResponse.json(
-                { success: false, message: '未提供管理员密码' },
+                { success: false, message: '管理员密码错误' },
                 { status: 401 }
             );
         }
@@ -44,12 +44,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const result = await authDb.addUser(adminPassword, username, password);
+        const result = await addUser(username, password);
         return NextResponse.json(result);
     } catch (error) {
-        console.error('Error adding user:', error);
+        console.error('Add user error:', error);
         return NextResponse.json(
-            { success: false, message: '添加用户失败' },
+            { success: false, message: '添加用户失败，请稍后重试' },
             { status: 500 }
         );
     }
@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
     try {
         const adminPassword = request.headers.get('x-admin-password');
-        if (!adminPassword) {
+        if (!adminPassword || !(await validateAdminPassword(adminPassword))) {
             return NextResponse.json(
-                { success: false, message: '未提供管理员密码' },
+                { success: false, message: '管理员密码错误' },
                 { status: 401 }
             );
         }
@@ -76,12 +76,12 @@ export async function DELETE(request: NextRequest) {
             );
         }
 
-        const result = await authDb.deleteUser(adminPassword, username);
+        const result = await deleteUser(username);
         return NextResponse.json(result);
     } catch (error) {
-        console.error('Error deleting user:', error);
+        console.error('Delete user error:', error);
         return NextResponse.json(
-            { success: false, message: '删除用户失败' },
+            { success: false, message: '删除用户失败，请稍后重试' },
             { status: 500 }
         );
     }

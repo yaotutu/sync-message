@@ -1,58 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cardKeyDb, messageDb } from '@/lib/database';
+import { validateWebhookKey, addMessage } from '@/lib/server/db';
 
 export async function POST(request: NextRequest) {
     try {
-        // 获取 webhook key 和用户名
-        const webhookKey = request.headers.get('x-webhook-key');
         const username = request.headers.get('x-username');
+        const webhookKey = request.headers.get('x-webhook-key');
 
-        if (!webhookKey || !username) {
+        if (!username || !webhookKey) {
             return NextResponse.json(
-                { success: false, message: '缺少 webhook key 或用户名' },
-                { status: 401 }
-            );
-        }
-
-        // 验证 webhook key
-        const validationResult = await cardKeyDb.validateOnly(webhookKey);
-        if (!validationResult.success) {
-            return NextResponse.json(
-                { success: false, message: validationResult.message },
-                { status: 401 }
-            );
-        }
-
-        // 验证用户名是否匹配
-        if (validationResult.username !== username) {
-            return NextResponse.json(
-                { success: false, message: '用户名与 webhook key 不匹配' },
-                { status: 401 }
-            );
-        }
-
-        // 获取消息内容
-        const body = await request.json();
-        if (!body || !body.content) {
-            return NextResponse.json(
-                { success: false, message: '消息内容不能为空' },
+                { success: false, message: '缺少必要的请求头' },
                 { status: 400 }
             );
         }
 
-        // 存储消息
-        const type = body.type || 'text';
-        const result = await messageDb.addMessage(username, body.content, type);
+        const validateResult = await validateWebhookKey(webhookKey);
+        if (!validateResult.success) {
+            return NextResponse.json(validateResult, { status: 401 });
+        }
 
-        return NextResponse.json({
-            success: true,
-            message: '消息发送成功',
-            id: result.id
-        });
+        const body = await request.json();
+        const received_at = body.received_at || Date.now();
+
+        const result = await addMessage(username, body.sms_content, body.rec_time, received_at);
+        return NextResponse.json(result);
     } catch (error) {
         console.error('Webhook error:', error);
         return NextResponse.json(
-            { success: false, message: '处理消息失败' },
+            { success: false, message: '处理webhook请求失败，请稍后重试' },
             { status: 500 }
         );
     }

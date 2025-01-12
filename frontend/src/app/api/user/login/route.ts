@@ -1,39 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/database';
+import { validateUser } from '@/lib/server/db';
 
 export async function POST(request: NextRequest) {
-    try {
-        const { username, password } = await request.json();
+    const body = await request.json();
+    const { username, password } = body;
 
-        if (!username || !password) {
-            return NextResponse.json(
-                { success: false, message: '请提供用户名和密码' },
-                { status: 400 }
-            );
-        }
-
-        // 验证用户名和密码
-        const user = await db.get(
-            'SELECT webhook_key as webhookKey FROM webhook_users WHERE username = ? AND password = ?',
-            [username, password]
-        );
-
-        if (!user) {
-            return NextResponse.json(
-                { success: false, message: '用户名或密码错误' },
-                { status: 401 }
-            );
-        }
-
-        return NextResponse.json({
-            success: true,
-            webhookKey: user.webhookKey
-        });
-    } catch (error) {
-        console.error('User login error:', error);
-        return NextResponse.json(
-            { success: false, message: '登录失败，请稍后重试' },
-            { status: 500 }
-        );
+    if (!username || !password) {
+        return NextResponse.json({ success: false, message: '用户名和密码不能为空' }, { status: 400 });
     }
+
+    const result = await validateUser(username, password);
+    return NextResponse.json(result);
 } 

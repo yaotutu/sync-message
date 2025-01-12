@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateAdminPassword } from '@/lib/server/db';
 
 export async function POST(request: NextRequest) {
     try {
@@ -10,7 +11,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (password !== process.env.ADMIN_PASSWORD) {
+        const isValid = await validateAdminPassword(password);
+        if (!isValid) {
             return NextResponse.json(
                 { success: false, message: '管理员密码错误' },
                 { status: 401 }

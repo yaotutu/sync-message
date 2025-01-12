@@ -1,8 +1,9 @@
 export interface Message {
     id: number;
-    content: string;
-    type: 'text' | 'image' | 'file';
-    createdAt: number;
+    username: string;
+    sms_content: string;
+    rec_time: string | null;
+    received_at: number;
 }
 
 export interface CardKeyValidateResponse {
@@ -17,5 +18,5 @@ export interface CardKeyValidateResponse {
 export interface MessageResponse {
     success: boolean;
     message?: string;
-    messages?: Message[];
+    data?: Message[];
 } 

@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cardKeyDb } from '@/lib/database';
+import { validateCardKey } from '@/lib/server/db';
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { key } = body;
-
+        const { key } = await request.json();
         if (!key) {
             return NextResponse.json(
                 { success: false, message: '请提供卡密' },
@@ -13,12 +11,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const result = await cardKeyDb.validateOnly(key);
+        const result = await validateCardKey(key);
         return NextResponse.json(result);
     } catch (error) {
-        console.error('Validation error:', error);
+        console.error('Validate cardkey error:', error);
         return NextResponse.json(
-            { success: false, message: '验证失败' },
+            { success: false, message: '验证卡密失败，请稍后重试' },
             { status: 500 }
         );
     }

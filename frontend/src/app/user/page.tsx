@@ -58,7 +58,7 @@ export default function UserPage() {
 
             const data = await response.json();
             if (data.success) {
-                setMessages(data.messages || []);
+                setMessages(data.data || []);
                 setError('');
             } else {
                 setError(data.message || '加载消息失败');
@@ -77,14 +77,25 @@ export default function UserPage() {
             alert('Webhook Key 已复制到剪贴板');
         } catch (error) {
             console.error('Copy webhook key error:', error);
-            alert('复制失败，请手动复制');
+            // 如果 clipboard API 不可用，使用传统方法
+            const textArea = document.createElement('textarea');
+            textArea.value = webhookKey;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Webhook Key 已复制到剪贴板');
+            } catch (err) {
+                alert('复制失败，请手动复制');
+            }
+            document.body.removeChild(textArea);
         }
     };
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
         if (isLoggedIn) {
-            timer = setInterval(loadMessages, 5000); // 每5秒刷新一次消息
+            timer = setInterval(loadMessages, 5000);
         }
         return () => {
             if (timer) {
@@ -181,10 +192,11 @@ export default function UserPage() {
                             </div>
                             <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
                                 <button
-                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     onClick={loadMessages}
+                                    disabled={isLoading}
                                 >
-                                    刷新
+                                    {isLoading ? '加载中...' : '刷新'}
                                 </button>
                             </div>
                         </div>
