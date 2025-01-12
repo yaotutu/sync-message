@@ -215,10 +215,10 @@
                     // 开始倒计时（如果是首次使用，服务器会返回完整的过期时间）
                     if (result.expiresIn) {
                         startCountdown(result.expiresIn);
-                    } else if (result.firstUsedAt) {
+                    } else if (result.usedAt) {
                         // 如果已经开始使用，计算剩余时间
                         const now = Date.now();
-                        const elapsedTime = now - result.firstUsedAt;
+                        const elapsedTime = now - result.usedAt;
                         const remainingTime = 3 * 60 * 1000 - elapsedTime; // 3分钟
                         if (remainingTime > 0) {
                             startCountdown(remainingTime);
@@ -249,7 +249,7 @@
             const messageList = document.getElementById('messageList');
 
             try {
-                const response = await fetch('/api/messages/messages', {
+                const response = await fetch('/api/messages', {
                     headers: {
                         'x-card-key': currentKey
                     }
@@ -257,10 +257,10 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    messageList.innerHTML = result.messages.map(message => `
+                    messageList.innerHTML = result.data.map(message => `
                         <div class="message-item">
                             <div class="message-time">${new Date(message.received_at).toLocaleString()}</div>
-                            <div class="message-content">${formatMessage(message.content)}</div>
+                            <div class="message-content">${message.sms_content}</div>
                         </div>
                     `).join('') || '<div class="message-item">暂无消息</div>';
 
@@ -269,7 +269,7 @@
                         startCountdown(result.expiresIn);
                     }
                 } else {
-                    if (result.expired) {
+                    if (result.message === '卡密已过期') {
                         // 如果是过期导致的失败，自动登出
                         logout();
                         alert('卡密已过期，请重新登录');

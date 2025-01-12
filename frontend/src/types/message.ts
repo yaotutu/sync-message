@@ -2,7 +2,7 @@ export interface Message {
     id: number;
     username: string;
     sms_content: string;
-    rec_time: string | null;
+    rec_time?: string;
     received_at: number;
 }
 
@@ -10,9 +10,8 @@ export interface CardKeyValidateResponse {
     success: boolean;
     message?: string;
     username?: string;
-    expired?: boolean;
     expiresIn?: number;
-    firstUsedAt?: number;
+    usedAt?: number;
 }
 
 export interface MessageResponse {

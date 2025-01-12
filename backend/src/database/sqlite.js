@@ -200,7 +200,7 @@ export const cardKeyDb = {
 
     // 验证卡密但不删除
     async validateOnly(key) {
-        const cardKey = await db.get('SELECT key, username, first_used_at FROM card_keys WHERE key = ?', [key]);
+        const cardKey = await db.get('SELECT key, username, used_at FROM card_keys WHERE key = ?', [key]);
         if (!cardKey) {
             // 记录无效卡密使用（不关联用户）
             await db.run(
@@ -213,12 +213,19 @@ export const cardKeyDb = {
         const now = Date.now();
 
         // 如果是首次使用，记录使用时间
-        if (!cardKey.first_used_at) {
+        if (!cardKey.used_at) {
             await db.run(
-                'UPDATE card_keys SET first_used_at = ? WHERE key = ?',
+                'UPDATE card_keys SET used_at = ? WHERE key = ?',
                 [now, key]
             );
-            cardKey.first_used_at = now;
+            cardKey.used_at = now;
+        } else {
+            // 检查是否过期
+            const elapsedTime = now - cardKey.used_at;
+            const validityPeriod = 3 * 60 * 1000; // 3分钟
+            if (elapsedTime > validityPeriod) {
+                return { valid: false, message: '卡密已过期', expired: true };
+            }
         }
 
         // 记录成功使用
@@ -231,7 +238,8 @@ export const cardKeyDb = {
             valid: true,
             message: '验证成功',
             username: cardKey.username,
-            firstUsedAt: cardKey.first_used_at
+            usedAt: cardKey.used_at,
+            expiresIn: 3 * 60 * 1000 - (now - cardKey.used_at)
         };
     },
 

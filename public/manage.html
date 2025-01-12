@@ -831,7 +831,7 @@
                         <div class="key-details">
                             <span class="key-status ${statusClass}">${status}</span>
                             <span class="key-date">创建时间: ${new Date(key.created_at).toLocaleString()}</span>
-                            ${key.first_used_at ? `<span class="key-date">首次使用: ${new Date(key.first_used_at).toLocaleString()}</span>` : ''}
+                            ${key.used_at ? `<span class="key-date">使用时间: ${new Date(key.used_at).toLocaleString()}</span>` : ''}
                         </div>
                     </div>
                 `;

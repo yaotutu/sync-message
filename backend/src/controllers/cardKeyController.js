@@ -60,7 +60,7 @@ export const validateCardKey = async (req, res) => {
                 message: result.message,
                 username: result.username,
                 expiresIn: result.expiresIn,
-                firstUsedAt: result.firstUsedAt
+                usedAt: result.usedAt
             });
         } else {
             res.status(401).json({

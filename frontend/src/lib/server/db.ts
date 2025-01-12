@@ -45,7 +45,7 @@ await db.exec(`
         username TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'unused',
         created_at INTEGER NOT NULL,
-        first_used_at INTEGER,
+        used_at INTEGER,
         FOREIGN KEY (username) REFERENCES webhook_users(username)
     );
 `);
@@ -200,20 +200,36 @@ export async function validateUser(username: string, password: string) {
 
 // 消息相关操作
 // 获取消息列表
-export async function getMessages(username: string) {
+export async function getMessages(cardKey: string) {
     try {
+        // 先验证卡密
+        const cardKeyResult = await validateCardKey(cardKey);
+        if (!cardKeyResult.success || !cardKeyResult.data) {
+            return { success: false, message: cardKeyResult.message };
+        }
+
         const messages = await db.all(
-            `SELECT id, username, sms_content, rec_time, received_at
+            `SELECT 
+                id,
+                username,
+                sms_content,
+                rec_time,
+                received_at
             FROM messages 
             WHERE username = ?
-            ORDER BY received_at DESC`,
-            [username]
+            ORDER BY received_at DESC
+            LIMIT 100`,
+            [cardKeyResult.data.username]
         );
 
-        return { success: true, data: messages };
+        return {
+            success: true,
+            data: messages,
+            expiresIn: cardKeyResult.data.expiresIn
+        };
     } catch (error) {
         console.error('Get messages error:', error);
-        return { success: false, message: '获取消息列表失败，请稍后重试' };
+        return { success: false, message: '获取消息失败，请稍后重试' };
     }
 }
 
@@ -315,7 +331,7 @@ export async function getUserCardKeys(username: string) {
                 key, 
                 status,
                 created_at as createdAt,
-                first_used_at as firstUsedAt
+                used_at as usedAt
             FROM card_keys 
             WHERE username = ?
             ORDER BY created_at DESC`,
@@ -339,7 +355,7 @@ export async function validateCardKey(key: string) {
                 card_keys.username,
                 card_keys.status,
                 card_keys.created_at as createdAt,
-                card_keys.first_used_at as firstUsedAt,
+                card_keys.used_at as usedAt,
                 webhook_users.webhook_key as webhookKey
             FROM card_keys 
             LEFT JOIN webhook_users ON card_keys.username = webhook_users.username
@@ -351,15 +367,24 @@ export async function validateCardKey(key: string) {
             return { success: false, message: '无效的卡密' };
         }
 
-        if (cardKey.status === 'used') {
-            return { success: false, message: '卡密已使用' };
+        const now = Date.now();
+        const validityPeriod = 3 * 60 * 1000; // 3分钟
+
+        if (cardKey.usedAt) {
+            const elapsedTime = now - cardKey.usedAt;
+            if (elapsedTime > validityPeriod) {
+                return { success: false, message: '卡密已过期' };
+            }
+        } else {
+            // 首次使用，记录使用时间
+            await db.run(
+                'UPDATE card_keys SET used_at = ? WHERE id = ?',
+                [now, cardKey.id]
+            );
+            cardKey.usedAt = now;
         }
 
-        // 更新卡密状态
-        await db.run(
-            'UPDATE card_keys SET status = ?, first_used_at = ? WHERE id = ?',
-            ['used', Date.now(), cardKey.id]
-        );
+        const expiresIn = cardKey.usedAt ? validityPeriod - (now - cardKey.usedAt) : validityPeriod;
 
         return {
             success: true,
@@ -368,7 +393,8 @@ export async function validateCardKey(key: string) {
                 webhookKey: cardKey.webhookKey,
                 cardKey: cardKey.key,
                 createdAt: cardKey.createdAt,
-                firstUsedAt: cardKey.firstUsedAt
+                usedAt: cardKey.usedAt,
+                expiresIn: expiresIn
             }
         };
     } catch (error) {

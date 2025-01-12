@@ -22,7 +22,7 @@ export const getMessagesHandler = async (req, res) => {
         const messages = await messageDb.getMessages(result.username);
         res.json({
             success: true,
-            messages,
+            data: messages,
             expiresIn: result.expiresIn // 返回剩余时间给前端
         });
     } catch (error) {
