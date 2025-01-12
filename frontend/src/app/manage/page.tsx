@@ -1,20 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { WebhookUser, MessageTemplate } from '@/types/manage';
+import { WebhookUser } from '@/types/manage';
+import WebhookUserList from '@/components/manage/WebhookUserList';
 
 export default function ManagePage() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
     const [users, setUsers] = useState<WebhookUser[]>([]);
-    const [templates, setTemplates] = useState<MessageTemplate[]>([]);
+    const [password, setPassword] = useState('');
     const [newUsername, setNewUsername] = useState('');
-    const [newTemplateName, setNewTemplateName] = useState('');
-    const [newTemplateContent, setNewTemplateContent] = useState('');
+    const [newUserPassword, setNewUserPassword] = useState('');
+    const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // 登录
     const login = async () => {
         if (!password) {
             setError('请输入管理员密码');
@@ -45,30 +43,21 @@ export default function ManagePage() {
         }
     };
 
-    // 加载数据
     const loadData = async () => {
         setIsLoading(true);
         try {
-            const [usersResponse, templatesResponse] = await Promise.all([
-                fetch('/api/manage/users', {
-                    headers: { 'x-admin-password': password }
-                }),
-                fetch('/api/manage/templates', {
-                    headers: { 'x-admin-password': password }
-                })
-            ]);
+            const response = await fetch('/api/manage/users', {
+                headers: {
+                    'x-admin-password': password
+                }
+            });
 
-            const [usersData, templatesData] = await Promise.all([
-                usersResponse.json(),
-                templatesResponse.json()
-            ]);
-
-            if (usersData.success && templatesData.success) {
-                setUsers(usersData.users);
-                setTemplates(templatesData.templates);
+            const data = await response.json();
+            if (data.success) {
+                setUsers(data.users || []);
                 setError('');
             } else {
-                setError(usersData.message || templatesData.message || '加载数据失败');
+                setError(data.message || '加载数据失败');
             }
         } catch (error) {
             console.error('Load data error:', error);
@@ -78,10 +67,9 @@ export default function ManagePage() {
         }
     };
 
-    // 添加用户
     const addUser = async () => {
-        if (!newUsername) {
-            setError('请输入用户名');
+        if (!newUsername || !newUserPassword) {
+            setError('请输入用户名和密码');
             return;
         }
 
@@ -93,12 +81,16 @@ export default function ManagePage() {
                     'Content-Type': 'application/json',
                     'x-admin-password': password
                 },
-                body: JSON.stringify({ username: newUsername })
+                body: JSON.stringify({
+                    username: newUsername,
+                    password: newUserPassword
+                })
             });
 
             const data = await response.json();
             if (data.success) {
                 setNewUsername('');
+                setNewUserPassword('');
                 loadData();
                 setError('');
             } else {
@@ -112,7 +104,6 @@ export default function ManagePage() {
         }
     };
 
-    // 删除用户
     const deleteUser = async (username: string) => {
         if (!confirm(`确定要删除用户 ${username} 吗？`)) {
             return;
@@ -122,7 +113,9 @@ export default function ManagePage() {
         try {
             const response = await fetch(`/api/manage/users/${username}`, {
                 method: 'DELETE',
-                headers: { 'x-admin-password': password }
+                headers: {
+                    'x-admin-password': password
+                }
             });
 
             const data = await response.json();
@@ -137,95 +130,6 @@ export default function ManagePage() {
             setError('删除用户失败，请稍后重试');
         } finally {
             setIsLoading(false);
-        }
-    };
-
-    // 添加模板
-    const addTemplate = async () => {
-        if (!newTemplateName || !newTemplateContent) {
-            setError('请输入模板名称和内容');
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/manage/templates', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-admin-password': password
-                },
-                body: JSON.stringify({
-                    name: newTemplateName,
-                    content: newTemplateContent
-                })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                setNewTemplateName('');
-                setNewTemplateContent('');
-                loadData();
-                setError('');
-            } else {
-                setError(data.message || '添加模板失败');
-            }
-        } catch (error) {
-            console.error('Add template error:', error);
-            setError('添加模板失败，请稍后重试');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // 删除模板
-    const deleteTemplate = async (id: number) => {
-        if (!confirm('确定要删除此模板吗？')) {
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            const response = await fetch(`/api/manage/templates/${id}`, {
-                method: 'DELETE',
-                headers: { 'x-admin-password': password }
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                loadData();
-                setError('');
-            } else {
-                setError(data.message || '删除模板失败');
-            }
-        } catch (error) {
-            console.error('Delete template error:', error);
-            setError('删除模板失败，请稍后重试');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // 复制 Webhook Key
-    const copyWebhookKey = async (webhookKey: string) => {
-        try {
-            await navigator.clipboard.writeText(webhookKey);
-            alert('Webhook Key 已复制到剪贴板');
-        } catch (error) {
-            console.error('Copy webhook key error:', error);
-            // 使用传统方法复制
-            const textArea = document.createElement('textarea');
-            textArea.value = webhookKey;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                alert('Webhook Key 已复制到剪贴板');
-            } catch (error) {
-                console.error('Fallback copy error:', error);
-                alert('复制失败，请手动复制');
-            }
-            document.body.removeChild(textArea);
         }
     };
 
@@ -245,6 +149,7 @@ export default function ManagePage() {
                                             value={password}
                                             onChange={(e) => setPassword(e.target.value)}
                                             onKeyDown={(e) => e.key === 'Enter' && login()}
+                                            placeholder="请输入管理员密码"
                                         />
                                     </div>
                                     {error && (
@@ -253,8 +158,7 @@ export default function ManagePage() {
                                         </div>
                                     )}
                                     <button
-                                        className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                                            }`}
+                                        className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         onClick={login}
                                         disabled={isLoading}
                                     >
@@ -278,193 +182,70 @@ export default function ManagePage() {
                     </div>
                 )}
 
-                {/* 用户管理 */}
-                <div className="bg-white shadow rounded-lg mb-6">
+                <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
                     <div className="px-4 py-5 sm:p-6">
-                        <h3 className="text-lg leading-6 font-medium text-gray-900">
-                            用户管理
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                            添加用户
                         </h3>
-                        <div className="mt-4 flex items-center">
-                            <input
-                                type="text"
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                                placeholder="输入用户名"
-                                value={newUsername}
-                                onChange={(e) => setNewUsername(e.target.value)}
-                            />
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    用户名
+                                </label>
+                                <input
+                                    type="text"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    value={newUsername}
+                                    onChange={(e) => setNewUsername(e.target.value)}
+                                    placeholder="请输入用户名"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                    密码
+                                </label>
+                                <input
+                                    type="password"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                    value={newUserPassword}
+                                    onChange={(e) => setNewUserPassword(e.target.value)}
+                                    placeholder="请输入密码"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-4">
                             <button
-                                className={`ml-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
+                                className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                 onClick={addUser}
                                 disabled={isLoading}
                             >
-                                添加用户
+                                {isLoading ? '添加中...' : '添加用户'}
                             </button>
-                        </div>
-                        <div className="mt-6">
-                            <div className="flex flex-col">
-                                <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                    <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                                        <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                                            <table className="min-w-full divide-y divide-gray-200">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            用户名
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Webhook Key
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            创建时间
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            操作
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="bg-white divide-y divide-gray-200">
-                                                    {users.map((user) => (
-                                                        <tr key={user.id}>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                                {user.username}
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                <div className="flex items-center">
-                                                                    <span className="font-mono">
-                                                                        {user.webhookKey}
-                                                                    </span>
-                                                                    <button
-                                                                        className="ml-2 text-indigo-600 hover:text-indigo-900"
-                                                                        onClick={() =>
-                                                                            copyWebhookKey(
-                                                                                user.webhookKey
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        复制
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                {new Date(
-                                                                    user.createdAt
-                                                                ).toLocaleString()}
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                <button
-                                                                    className="text-red-600 hover:text-red-900"
-                                                                    onClick={() =>
-                                                                        deleteUser(user.username)
-                                                                    }
-                                                                    disabled={isLoading}
-                                                                >
-                                                                    删除
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* 模板管理 */}
-                <div className="bg-white shadow rounded-lg">
                     <div className="px-4 py-5 sm:p-6">
-                        <h3 className="text-lg leading-6 font-medium text-gray-900">
-                            模板管理
-                        </h3>
-                        <div className="mt-4 space-y-4">
-                            <div>
-                                <input
-                                    type="text"
-                                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                                    placeholder="模板名称"
-                                    value={newTemplateName}
-                                    onChange={(e) => setNewTemplateName(e.target.value)}
-                                />
+                        <div className="sm:flex sm:items-center">
+                            <div className="sm:flex-auto">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                                    用户列表
+                                </h3>
                             </div>
-                            <div>
-                                <textarea
-                                    className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-                                    placeholder="模板内容"
-                                    rows={4}
-                                    value={newTemplateContent}
-                                    onChange={(e) => setNewTemplateContent(e.target.value)}
-                                />
+                            <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+                                <button
+                                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                    onClick={loadData}
+                                >
+                                    刷新
+                                </button>
                             </div>
-                            <button
-                                className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                                    }`}
-                                onClick={addTemplate}
-                                disabled={isLoading}
-                            >
-                                添加模板
-                            </button>
                         </div>
-                        <div className="mt-6">
-                            <div className="flex flex-col">
-                                <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-                                    <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-                                        <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                                            <table className="min-w-full divide-y divide-gray-200">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            名称
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            内容
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            创建时间
-                                                        </th>
-                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            操作
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="bg-white divide-y divide-gray-200">
-                                                    {templates.map((template) => (
-                                                        <tr key={template.id}>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                                {template.name}
-                                                            </td>
-                                                            <td className="px-6 py-4 text-sm text-gray-500">
-                                                                <div className="max-w-xs overflow-hidden text-ellipsis">
-                                                                    {template.content}
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                {new Date(
-                                                                    template.createdAt
-                                                                ).toLocaleString()}
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                <button
-                                                                    className="text-red-600 hover:text-red-900"
-                                                                    onClick={() =>
-                                                                        deleteTemplate(template.id)
-                                                                    }
-                                                                    disabled={isLoading}
-                                                                >
-                                                                    删除
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div className="mt-4">
+                            <WebhookUserList
+                                users={users}
+                                onRefresh={loadData}
+                                onDeleteUser={deleteUser}
+                            />
                         </div>
                     </div>
                 </div>

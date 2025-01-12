@@ -4,6 +4,7 @@ import { db } from '@/lib/database';
 interface WebhookUser {
     id: number;
     username: string;
+    password: string;
     webhookKey: string;
     createdAt: string;
 }
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
 
         try {
             const users = await db.all<WebhookUser[]>(`
-                SELECT id, username, webhook_key as webhookKey, created_at as createdAt
+                SELECT id, username, password, webhook_key as webhookKey, created_at as createdAt
                 FROM webhook_users
                 ORDER BY created_at DESC
             `);
@@ -72,10 +73,10 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { username } = await request.json();
-        if (!username) {
+        const { username, password } = await request.json();
+        if (!username || !password) {
             return NextResponse.json(
-                { success: false, message: '请提供用户名' },
+                { success: false, message: '请提供用户名和密码' },
                 { status: 400 }
             );
         }
@@ -95,12 +96,12 @@ export async function POST(request: NextRequest) {
 
             // 插入新用户
             const result = await db.run(
-                `INSERT INTO webhook_users (username, webhook_key, created_at) VALUES (?, ?, ?)`,
-                [username, webhookKey, new Date().toISOString()]
+                `INSERT INTO webhook_users (username, password, webhook_key, created_at) VALUES (?, ?, ?, ?)`,
+                [username, password, webhookKey, new Date().toISOString()]
             );
 
             const newUser = await db.get<WebhookUser>(
-                `SELECT id, username, webhook_key as webhookKey, created_at as createdAt
+                `SELECT id, username, password, webhook_key as webhookKey, created_at as createdAt
                 FROM webhook_users WHERE id = ?`,
                 [result.lastID]
             );
