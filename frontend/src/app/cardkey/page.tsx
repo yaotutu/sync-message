@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { useState, useEffect } from 'react';
 import { CardKey } from '@/types/user';
 
@@ -14,29 +13,19 @@ export default function CardKeyManagePage() {
     const [password, setPassword] = useState('');
 
     useEffect(() => {
+        // 检查本地存储的登录信息
         const savedUsername = localStorage.getItem('username');
         const savedPassword = localStorage.getItem('password');
         if (savedUsername && savedPassword) {
             setUsername(savedUsername);
             setPassword(savedPassword);
             setIsLoggedIn(true);
-            fetchCardKeys();
+            fetchCardKeys(savedUsername, savedPassword);
         } else {
             setLoading(false);
+            setIsLoggedIn(false);
         }
     }, []);
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (isLoggedIn) {
-            interval = setInterval(fetchCardKeys, 5000); // 每5秒刷新一次
-        }
-        return () => {
-            if (interval) {
-                clearInterval(interval);
-            }
-        };
-    }, [isLoggedIn]);
 
     const login = async () => {
         if (!username || !password) {
@@ -59,7 +48,7 @@ export default function CardKeyManagePage() {
                 localStorage.setItem('password', password);
                 setIsLoggedIn(true);
                 setError(null);
-                fetchCardKeys();
+                fetchCardKeys(username, password);
             } else {
                 setError(data.message || '登录失败');
             }
@@ -68,22 +57,13 @@ export default function CardKeyManagePage() {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('username');
-        localStorage.removeItem('password');
-        setIsLoggedIn(false);
-        setUsername('');
-        setPassword('');
-        setCardKeys([]);
-        setError(null);
-    };
-
-    const fetchCardKeys = async () => {
+    const fetchCardKeys = async (user: string, pass: string) => {
         try {
+            setLoading(true);
             const response = await fetch('/api/user/cardkeys', {
                 headers: {
-                    'x-username': username,
-                    'x-password': password
+                    'x-username': user,
+                    'x-password': pass
                 }
             });
 
@@ -107,33 +87,7 @@ export default function CardKeyManagePage() {
     const generateCardKeys = async () => {
         try {
             setError(null);
-            const promises = Array(generatingCount).fill(0).map(() =>
-                fetch('/api/user/cardkeys', {
-                    method: 'POST',
-                    headers: {
-                        'x-username': username,
-                        'x-password': password
-                    }
-                })
-            );
-
-            const results = await Promise.all(promises);
-            const allSuccessful = results.every(res => res.ok);
-
-            if (allSuccessful) {
-                fetchCardKeys();
-            } else {
-                setError('部分卡密生成失败');
-            }
-        } catch (error) {
-            setError('生成卡密失败，请稍后重试');
-        }
-    };
-
-    const deleteCardKey = async (key: string) => {
-        try {
-            const response = await fetch(`/api/user/cardkeys/${key}`, {
-                method: 'DELETE',
+            const response = await fetch(`/api/cardkey/generate?count=${generatingCount}`, {
                 headers: {
                     'x-username': username,
                     'x-password': password
@@ -142,13 +96,23 @@ export default function CardKeyManagePage() {
 
             const data = await response.json();
             if (data.success) {
-                fetchCardKeys();
+                fetchCardKeys(username, password);
             } else {
-                setError(data.message);
+                setError('生成卡密失败：' + data.message);
             }
         } catch (error) {
-            setError('删除卡密失败，请稍后重试');
+            setError('生成卡密失败，请稍后重试');
         }
+    };
+
+    const logout = () => {
+        localStorage.removeItem('username');
+        localStorage.removeItem('password');
+        setIsLoggedIn(false);
+        setUsername('');
+        setPassword('');
+        setCardKeys([]);
+        setError(null);
     };
 
     const formatTime = (ms: number) => {
@@ -185,39 +149,46 @@ export default function CardKeyManagePage() {
                 <div className="relative py-3 sm:max-w-xl sm:mx-auto">
                     <div className="relative px-4 py-10 bg-white mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
                         <div className="max-w-md mx-auto">
-                            <div className="divide-y divide-gray-200">
-                                <div className="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
-                                    <div className="flex flex-col">
-                                        <label className="leading-loose">用户名</label>
-                                        <input
-                                            type="text"
-                                            value={username}
-                                            onChange={(e) => setUsername(e.target.value)}
-                                            className="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-300 rounded-md focus:outline-none text-gray-600"
-                                            placeholder="请输入用户名"
-                                        />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <label className="leading-loose">密码</label>
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && login()}
-                                            className="px-4 py-2 border focus:ring-gray-500 focus:border-gray-900 w-full sm:text-sm border-gray-300 rounded-md focus:outline-none text-gray-600"
-                                            placeholder="请输入密码"
-                                        />
-                                    </div>
-                                    {error && (
-                                        <div className="text-red-500 text-sm">{error}</div>
-                                    )}
-                                    <button
-                                        onClick={login}
-                                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors w-full"
-                                    >
-                                        登录
-                                    </button>
+                            <h1 className="text-2xl font-bold text-center text-gray-900 mb-8">卡密管理登录</h1>
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                                        用户名
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="username"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        placeholder="请输入用户名"
+                                    />
                                 </div>
+                                <div>
+                                    <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                                        密码
+                                    </label>
+                                    <input
+                                        type="password"
+                                        id="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && login()}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        placeholder="请输入密码"
+                                    />
+                                </div>
+                                {error && (
+                                    <div className="text-red-500 text-sm">
+                                        {error}
+                                    </div>
+                                )}
+                                <button
+                                    onClick={login}
+                                    className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                    登录
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -260,7 +231,7 @@ export default function CardKeyManagePage() {
                         </div>
                         <button
                             onClick={generateCardKeys}
-                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+                            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors"
                         >
                             生成卡密
                         </button>
@@ -268,7 +239,7 @@ export default function CardKeyManagePage() {
                 </div>
 
                 {error && (
-                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
                         {error}
                     </div>
                 )}
@@ -297,12 +268,6 @@ export default function CardKeyManagePage() {
                                         </div>
                                     )}
                                 </div>
-                                <button
-                                    onClick={() => deleteCardKey(cardKey.key)}
-                                    className="text-red-500 hover:text-red-700 transition-colors ml-4"
-                                >
-                                    删除
-                                </button>
                             </div>
                         );
                     })}
