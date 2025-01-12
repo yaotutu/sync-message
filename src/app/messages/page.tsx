@@ -93,14 +93,14 @@ export default function MessagesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 py-6">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {!isValidated ? (
-                    <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
-                        <h1 className="text-2xl font-bold text-gray-900 mb-6">消息查看</h1>
+                    <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">消息查看</h1>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label htmlFor="cardKey" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="cardKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                     卡密
                                 </label>
                                 <input
@@ -108,41 +108,41 @@ export default function MessagesPage() {
                                     type="text"
                                     value={cardKey}
                                     onChange={(e) => setCardKey(e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                     placeholder="请输入卡密"
                                 />
                             </div>
                             {error && (
-                                <div className="text-red-500 text-sm">
+                                <div className="text-red-500 dark:text-red-400 text-sm">
                                     {error}
                                 </div>
                             )}
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 disabled:opacity-50"
                             >
                                 {isLoading ? '验证中...' : '验证'}
                             </button>
                         </form>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-lg shadow-lg">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
                         <div className="p-6">
                             <div className="flex justify-between items-center mb-6">
                                 <div className="flex items-center space-x-4">
-                                    <h1 className="text-2xl font-bold text-gray-900">消息列表</h1>
+                                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">消息列表</h1>
                                     <Countdown expiresIn={expiresIn} onExpire={handleLogout} />
                                 </div>
                                 <button
                                     onClick={handleLogout}
-                                    className="text-gray-600 hover:text-gray-900"
+                                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
                                 >
                                     退出
                                 </button>
                             </div>
                             {error && (
-                                <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                                <div className="mb-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-500 text-red-700 dark:text-red-400 px-4 py-3 rounded relative">
                                     {error}
                                 </div>
                             )}

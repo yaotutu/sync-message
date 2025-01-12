@@ -180,11 +180,11 @@ export default function ManagePage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 py-8 px-4">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8 px-4">
             <div className="max-w-4xl mx-auto">
                 {!isLoggedIn ? (
-                    <div className="bg-white rounded-lg shadow p-6">
-                        <h2 className="text-2xl font-bold mb-4">管理员登录</h2>
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                        <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">管理员登录</h2>
                         <div className="space-y-4">
                             <input
                                 type="password"
@@ -192,25 +192,25 @@ export default function ManagePage() {
                                 onChange={(e) => setPassword(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && login()}
                                 placeholder="请输入管理员密码"
-                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100"
+                                className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-600"
                                 disabled={isLoading}
                             />
                             <button
                                 onClick={login}
                                 disabled={isLoading}
-                                className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300 transition-all"
+                                className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:bg-blue-300 dark:disabled:bg-blue-400 transition-all"
                             >
                                 {isLoading ? '登录中...' : '登录'}
                             </button>
                             {error && (
-                                <div className="text-red-500 text-sm mt-2">{error}</div>
+                                <div className="text-red-500 dark:text-red-400 text-sm mt-2">{error}</div>
                             )}
                         </div>
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        <div className="bg-white rounded-lg shadow p-6">
-                            <h2 className="text-2xl font-bold mb-4">用户管理</h2>
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">用户管理</h2>
                             <div className="space-y-4">
                                 <div className="flex gap-4">
                                     <input
@@ -218,7 +218,7 @@ export default function ManagePage() {
                                         value={newUsername}
                                         onChange={(e) => setNewUsername(e.target.value)}
                                         placeholder="用户名"
-                                        className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100"
+                                        className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-600"
                                         disabled={isLoading}
                                     />
                                     <input
@@ -226,87 +226,63 @@ export default function ManagePage() {
                                         value={newUserPassword}
                                         onChange={(e) => setNewUserPassword(e.target.value)}
                                         placeholder="密码"
-                                        className="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100"
+                                        className="flex-1 px-4 py-2 border dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all disabled:bg-gray-100 dark:bg-gray-700 dark:text-white dark:disabled:bg-gray-600"
                                         disabled={isLoading}
                                     />
                                     <button
                                         onClick={addUser}
                                         disabled={isLoading}
-                                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:bg-green-300 transition-all whitespace-nowrap"
+                                        className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:bg-green-300 dark:disabled:bg-green-400 transition-all whitespace-nowrap"
                                     >
                                         {isLoading ? '添加中...' : '添加用户'}
                                     </button>
                                 </div>
                                 {error && (
-                                    <div className="text-red-500 text-sm">{error}</div>
+                                    <div className="text-red-500 dark:text-red-400 text-sm">{error}</div>
                                 )}
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-lg shadow overflow-hidden">
-                            <div className="p-6 pb-4 flex justify-between items-center">
-                                <h3 className="text-xl font-bold">用户列表</h3>
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                            <div className="p-6 pb-4 flex justify-between items-center border-b dark:border-gray-700">
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">用户列表</h3>
                                 <button
                                     onClick={loadData}
                                     disabled={isLoading}
-                                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-300 transition-all"
+                                    className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:bg-blue-300 dark:disabled:bg-blue-400 transition-all"
                                 >
                                     {isLoading ? '刷新中...' : '刷新'}
                                 </button>
                             </div>
-                            <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                用户名
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Webhook Key
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                创建时间
-                                            </th>
-                                            <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                操作
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {users.map((user) => (
-                                            <tr key={user.username}>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {user.username}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center space-x-2">
-                                                        <code className="text-sm bg-gray-100 px-2 py-1 rounded">
-                                                            {user.webhookKey}
-                                                        </code>
-                                                        <button
-                                                            onClick={() => copyWebhookKey(user.webhookKey)}
-                                                            className="text-blue-500 hover:text-blue-700"
-                                                        >
-                                                            复制
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    {new Date(user.createdAt).toLocaleString()}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                    <button
-                                                        onClick={() => deleteUser(user.username)}
-                                                        disabled={isLoading}
-                                                        className="text-red-500 hover:text-red-700 disabled:text-red-300"
-                                                    >
-                                                        删除
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                            <div className="divide-y dark:divide-gray-700">
+                                {users.map((user) => (
+                                    <div key={user.username} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                        <div className="space-y-1">
+                                            <div className="font-medium text-gray-900 dark:text-white">{user.username}</div>
+                                            <div className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+                                                Webhook Key: {user.webhookKey}
+                                                <button
+                                                    onClick={() => copyWebhookKey(user.webhookKey)}
+                                                    className="ml-2 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                                                >
+                                                    复制
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => deleteUser(user.username)}
+                                            disabled={isLoading}
+                                            className="px-3 py-1 text-sm text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                                        >
+                                            删除
+                                        </button>
+                                    </div>
+                                ))}
+                                {users.length === 0 && (
+                                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                        暂无用户
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
