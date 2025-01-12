@@ -12,6 +12,7 @@ export default function CardKeyManagePage() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isMounted, setIsMounted] = useState(false);
+    const [newlyGeneratedKeys, setNewlyGeneratedKeys] = useState<string[]>([]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -98,12 +99,37 @@ export default function CardKeyManagePage() {
 
             const data = await response.json();
             if (data.success) {
+                // 保存新生成的卡密
+                const newKeys = data.data.map((key: CardKey) => key.key);
+                setNewlyGeneratedKeys(newKeys);
                 fetchCardKeys(username, password);
             } else {
                 setError('生成卡密失败：' + data.message);
             }
         } catch (error) {
             setError('生成卡密失败，请稍后重试');
+        }
+    };
+
+    const copyToClipboard = (text: string) => {
+        // 创建一个临时的 textarea 元素
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+
+        try {
+            // 选择文本
+            textarea.select();
+            textarea.setSelectionRange(0, 99999);
+            // 执行复制命令
+            document.execCommand('copy');
+            setError('复制成功！');
+            setTimeout(() => setError(null), 2000);
+        } catch (err) {
+            setError('复制失败，请手动复制');
+        } finally {
+            // 清理
+            document.body.removeChild(textarea);
         }
     };
 
@@ -248,6 +274,33 @@ export default function CardKeyManagePage() {
                 {error && (
                     <div className="mb-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-500 text-red-700 dark:text-red-400 px-4 py-3 rounded relative">
                         {error}
+                    </div>
+                )}
+
+                {newlyGeneratedKeys.length > 0 && (
+                    <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="text-lg font-medium text-green-800 dark:text-green-200">新生成的卡密</h3>
+                            <button
+                                onClick={() => copyToClipboard(newlyGeneratedKeys.join('\n'))}
+                                className="text-sm px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 transition-colors"
+                            >
+                                复制全部
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {newlyGeneratedKeys.map((key, index) => (
+                                <div key={key} className="flex justify-between items-center bg-white dark:bg-gray-800 p-2 rounded">
+                                    <code className="font-mono text-green-700 dark:text-green-300">{key}</code>
+                                    <button
+                                        onClick={() => copyToClipboard(key)}
+                                        className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
+                                    >
+                                        复制
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
 
