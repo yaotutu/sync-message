@@ -180,9 +180,9 @@ export default function CardKeyManagePage() {
         return (
             <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-6 flex flex-col justify-center sm:py-12">
                 <div className="relative py-3 sm:max-w-xl sm:mx-auto">
-                    <div className="relative px-4 py-10 bg-white dark:bg-gray-800 mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
+                    <div className="relative px-4 py-8 sm:py-10 bg-white dark:bg-gray-800 mx-4 sm:mx-8 md:mx-0 shadow rounded-3xl sm:p-10">
                         <div className="max-w-md mx-auto">
-                            <h1 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">卡密管理登录</h1>
+                            <h1 className="text-xl sm:text-2xl font-bold text-center text-gray-900 dark:text-white mb-6">卡密管理登录</h1>
                             <div className="space-y-4">
                                 <div>
                                     <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -193,7 +193,7 @@ export default function CardKeyManagePage() {
                                         id="username"
                                         value={username}
                                         onChange={(e) => setUsername(e.target.value)}
-                                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base"
                                         placeholder="请输入用户名"
                                     />
                                 </div>
@@ -207,7 +207,7 @@ export default function CardKeyManagePage() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && login()}
-                                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base"
                                         placeholder="请输入密码"
                                     />
                                 </div>
@@ -218,7 +218,7 @@ export default function CardKeyManagePage() {
                                 )}
                                 <button
                                     onClick={login}
-                                    className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800"
+                                    className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 text-sm sm:text-base"
                                 >
                                     登录
                                 </button>
@@ -232,11 +232,11 @@ export default function CardKeyManagePage() {
 
     return (
         <div className="p-4 max-w-4xl mx-auto">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                <div className="flex justify-between items-center mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
                     <div>
                         <div className="flex items-center gap-4">
-                            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">卡密管理</h1>
+                            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">卡密管理</h1>
                             <button
                                 onClick={logout}
                                 className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-sm"
@@ -249,13 +249,13 @@ export default function CardKeyManagePage() {
                             {cardKeys.length > 0 && `，其中 ${cardKeys.filter(k => !k.usedAt).length} 个未使用`}
                         </p>
                     </div>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm text-gray-700 dark:text-gray-300">生成数量:</label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <label className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">生成数量:</label>
                             <select
                                 value={generatingCount}
                                 onChange={(e) => setGeneratingCount(Number(e.target.value))}
-                                className="border rounded px-2 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                className="border rounded px-2 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm flex-1 sm:flex-none"
                             >
                                 {[1, 5, 10, 20].map(num => (
                                     <option key={num} value={num}>{num}</option>
@@ -264,7 +264,7 @@ export default function CardKeyManagePage() {
                         </div>
                         <button
                             onClick={generateCardKeys}
-                            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors"
+                            className="w-full sm:w-auto bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-colors text-sm sm:text-base"
                         >
                             生成卡密
                         </button>
@@ -272,29 +272,29 @@ export default function CardKeyManagePage() {
                 </div>
 
                 {error && (
-                    <div className="mb-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-500 text-red-700 dark:text-red-400 px-4 py-3 rounded relative">
+                    <div className="mb-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-500 text-red-700 dark:text-red-400 px-4 py-3 rounded relative text-sm sm:text-base">
                         {error}
                     </div>
                 )}
 
                 {newlyGeneratedKeys.length > 0 && (
-                    <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-lg font-medium text-green-800 dark:text-green-200">新生成的卡密</h3>
+                    <div className="mb-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 sm:p-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2 sm:gap-0">
+                            <h3 className="text-base sm:text-lg font-medium text-green-800 dark:text-green-200">新生成的卡密</h3>
                             <button
                                 onClick={() => copyToClipboard(newlyGeneratedKeys.join('\n'))}
-                                className="text-sm px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 transition-colors"
+                                className="text-sm px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 transition-colors w-full sm:w-auto"
                             >
                                 复制全部
                             </button>
                         </div>
                         <div className="space-y-2">
                             {newlyGeneratedKeys.map((key, index) => (
-                                <div key={key} className="flex justify-between items-center bg-white dark:bg-gray-800 p-2 rounded">
-                                    <code className="font-mono text-green-700 dark:text-green-300">{key}</code>
+                                <div key={key} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-gray-800 p-2 rounded gap-2 sm:gap-0">
+                                    <code className="font-mono text-sm sm:text-base text-green-700 dark:text-green-300 break-all w-full sm:w-auto">{key}</code>
                                     <button
                                         onClick={() => copyToClipboard(key)}
-                                        className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
+                                        className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 w-full sm:w-auto text-center sm:text-left"
                                     >
                                         复制
                                     </button>
@@ -310,20 +310,20 @@ export default function CardKeyManagePage() {
                         return (
                             <div
                                 key={cardKey.id}
-                                className={`border rounded-lg p-4 flex justify-between items-center dark:border-gray-700 ${status.bgColor} dark:bg-opacity-10 hover:shadow-md transition-shadow`}
+                                className={`border rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center dark:border-gray-700 ${status.bgColor} dark:bg-opacity-10 hover:shadow-md transition-shadow gap-2 sm:gap-0`}
                             >
-                                <div className="space-y-1 flex-1">
-                                    <div className="font-mono text-lg flex items-center gap-2 dark:text-white">
+                                <div className="space-y-1 w-full sm:w-auto">
+                                    <div className="font-mono text-base sm:text-lg flex flex-col sm:flex-row items-start sm:items-center gap-2 dark:text-white break-all">
                                         {cardKey.key}
-                                        <span className={`text-sm px-2 py-0.5 rounded-full ${status.color} dark:text-opacity-90 ${status.bgColor} dark:bg-opacity-20 border border-current`}>
+                                        <span className={`text-sm px-2 py-0.5 rounded-full ${status.color} dark:text-opacity-90 ${status.bgColor} dark:bg-opacity-20 border border-current whitespace-nowrap`}>
                                             {status.text}
                                         </span>
                                     </div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                    <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                         创建时间: {new Date(cardKey.createdAt).toLocaleString()}
                                     </div>
                                     {cardKey.usedAt && (
-                                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                                        <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                             使用时间: {isMounted ? new Date(cardKey.usedAt).toLocaleString() : ''}
                                         </div>
                                     )}
@@ -333,7 +333,7 @@ export default function CardKeyManagePage() {
                     })}
 
                     {cardKeys.length === 0 && (
-                        <div className="text-center text-gray-500 dark:text-gray-400 py-8 border-2 border-dashed rounded-lg dark:border-gray-700">
+                        <div className="text-center text-gray-500 dark:text-gray-400 py-8 border-2 border-dashed rounded-lg dark:border-gray-700 text-sm sm:text-base">
                             暂无卡密，点击"生成卡密"按钮创建新的卡密
                         </div>
                     )}
