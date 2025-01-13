@@ -13,12 +13,9 @@ export interface KeyLog {
     createdAt: number;
 }
 
-export interface ApiResponse {
+export interface ApiResponse<T> {
     success: boolean;
     message?: string;
-    data?: any;
-    users?: User[];
-    user?: User;
-    keys?: string[];
-    logs?: KeyLog[];
+    data?: T;
+    error?: Error;
 } 

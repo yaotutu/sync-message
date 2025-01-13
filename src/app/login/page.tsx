@@ -1,21 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
-    const router = useRouter();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [keys, setKeys] = useState<string[]>([]);
+    const [error, setError] = useState<string | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [keyCount, setKeyCount] = useState(1);
+    const [keys, setKeys] = useState<string[]>([]);
 
-    const login = async () => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!username || !password) {
+            setError('请输入用户名和密码');
+            return;
+        }
+
         try {
-            const response = await fetch('/api/cardkey/user/login', {
+            const response = await fetch('/api/user/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -23,14 +27,14 @@ export default function LoginPage() {
                 body: JSON.stringify({ username, password })
             });
 
-            const result = await response.json();
-            if (result.success) {
+            const data = await response.json();
+            if (data.success) {
+                setError(null);
                 setIsLoggedIn(true);
-                setError('');
             } else {
-                setError(result.message || '用户名或密码错误');
+                setError(data.message || '登录失败');
             }
-        } catch (error) {
+        } catch (_error) {
             setError('登录失败，请稍后重试');
         }
     };
@@ -44,13 +48,13 @@ export default function LoginPage() {
                 }
             });
 
-            const result = await response.json();
-            if (result.success) {
-                setKeys(result.keys);
+            const data = await response.json();
+            if (data.success) {
+                setKeys(data.data);
             } else {
-                setError('生成密钥失败：' + result.message);
+                setError(data.message || '生成密钥失败');
             }
-        } catch (error) {
+        } catch (_error) {
             setError('生成密钥失败，请稍后重试');
         }
     };
@@ -95,7 +99,7 @@ export default function LoginPage() {
                             />
                         </div>
                         <button
-                            onClick={login}
+                            onClick={handleSubmit}
                             className="w-full bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors"
                         >
                             登录

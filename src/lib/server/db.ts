@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import config from '@/config';
+import { User } from '@/types/user';
 
 // 确保数据库目录存在
 const dbDir = path.join(process.cwd(), 'data');
@@ -88,7 +89,7 @@ export async function addUser(username: string, password: string) {
             return { success: false, message: '创建用户失败' };
         }
 
-        const user = await db.get(
+        const user = await db.get<User>(
             'SELECT id, username, webhook_key as webhookKey, created_at as createdAt FROM webhook_users WHERE id = ?',
             [result.lastID]
         );
@@ -98,9 +99,9 @@ export async function addUser(username: string, password: string) {
         }
 
         return { success: true, data: user };
-    } catch (error: any) {
+    } catch (error) {
         console.error('Add user error:', error);
-        if (error.code === 'SQLITE_CONSTRAINT') {
+        if (error instanceof Error && 'code' in error && error.code === 'SQLITE_CONSTRAINT') {
             return { success: false, message: '用户名已存在' };
         }
         return { success: false, message: '创建用户失败，请稍后重试' };

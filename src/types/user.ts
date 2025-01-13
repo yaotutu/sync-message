@@ -2,10 +2,10 @@ export interface CardKey {
     id: number;
     key: string;
     username: string;
-    status: 'unused' | 'used';
+    status: 'unused' | 'used' | 'expired';
     createdAt: number;
-    usedAt: number | null;
-    expiresIn: number | null;
+    usedAt?: number | null;
+    expiresIn?: number;
 }
 
 export interface User {

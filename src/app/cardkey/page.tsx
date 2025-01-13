@@ -22,6 +22,33 @@ export default function CardKeyManagePage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(10);
 
+    const fetchCardKeys = async (user: string, pass: string) => {
+        try {
+            setLoading(true);
+            const response = await fetch('/api/user/cardkeys', {
+                headers: {
+                    'x-username': user,
+                    'x-password': pass
+                }
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setCardKeys(data.data);
+                setError(null);
+            } else {
+                if (data.message === '无效的用户名或密码') {
+                    logout();
+                }
+                setError(data.message);
+            }
+        } catch (error) {
+            setError('获取卡密列表失败，请稍后重试');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         setIsMounted(true);
         // 检查本地存储的登录信息
@@ -63,35 +90,8 @@ export default function CardKeyManagePage() {
             } else {
                 setError(data.message || '登录失败');
             }
-        } catch (error) {
+        } catch (_error) {
             setError('登录失败，请稍后重试');
-        }
-    };
-
-    const fetchCardKeys = async (user: string, pass: string) => {
-        try {
-            setLoading(true);
-            const response = await fetch('/api/user/cardkeys', {
-                headers: {
-                    'x-username': user,
-                    'x-password': pass
-                }
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                setCardKeys(data.data);
-                setError(null);
-            } else {
-                if (data.message === '无效的用户名或密码') {
-                    logout();
-                }
-                setError(data.message);
-            }
-        } catch (error) {
-            setError('获取卡密列表失败，请稍后重试');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -137,23 +137,19 @@ export default function CardKeyManagePage() {
     };
 
     const copyToClipboard = (text: string) => {
-        // 创建一个临时的 textarea 元素
         const textarea = document.createElement('textarea');
         textarea.value = text;
         document.body.appendChild(textarea);
 
         try {
-            // 选择文本
             textarea.select();
             textarea.setSelectionRange(0, 99999);
-            // 执行复制命令
             document.execCommand('copy');
             setError('复制成功！');
             setTimeout(() => setError(null), 2000);
-        } catch (err) {
+        } catch (_err) {
             setError('复制失败，请手动复制');
         } finally {
-            // 清理
             document.body.removeChild(textarea);
         }
     };
@@ -418,7 +414,7 @@ export default function CardKeyManagePage() {
                             </button>
                         </div>
                         <div className="space-y-2">
-                            {newlyGeneratedKeys.map((key, index) => (
+                            {newlyGeneratedKeys.map((key) => (
                                 <div key={key} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white dark:bg-gray-800 p-2 rounded gap-2 sm:gap-0">
                                     <code className="font-mono text-sm sm:text-base text-green-700 dark:text-green-300 break-all w-full sm:w-auto">{key}</code>
                                     <button
