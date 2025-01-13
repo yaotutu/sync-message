@@ -1,6 +1,5 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
 import { Message } from '@/types/message';
 
 interface MessageListProps {
@@ -8,19 +7,16 @@ interface MessageListProps {
 }
 
 export default function MessageList({ messages }: MessageListProps) {
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+    // 对消息进行排序，最新的消息在最上面
+    const sortedMessages = [...messages].sort((a, b) => {
+        const timeA = a.rec_time ? new Date(a.rec_time).getTime() : a.received_at;
+        const timeB = b.rec_time ? new Date(b.rec_time).getTime() : b.received_at;
+        return timeB - timeA;
+    });
 
     return (
         <div className="flex flex-col space-y-4 h-[calc(100vh-16rem)] sm:h-[600px] overflow-y-auto p-2 sm:p-4">
-            {messages.map((message) => (
+            {sortedMessages.map((message) => (
                 <div
                     key={message.id}
                     className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 shadow"
@@ -38,7 +34,6 @@ export default function MessageList({ messages }: MessageListProps) {
                     </div>
                 </div>
             ))}
-            <div ref={messagesEndRef} />
         </div>
     );
 } 

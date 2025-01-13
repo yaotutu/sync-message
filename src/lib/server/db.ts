@@ -364,11 +364,10 @@ export async function validateCardKey(key: string) {
         }
 
         const now = Date.now();
-        const validityPeriod = 3 * 60 * 1000; // 3分钟
 
         if (cardKey.usedAt) {
             const elapsedTime = now - cardKey.usedAt;
-            if (elapsedTime > validityPeriod) {
+            if (elapsedTime > config.cardKey.validityPeriod) {
                 return { success: false, message: '卡密已过期' };
             }
         } else {
@@ -380,7 +379,7 @@ export async function validateCardKey(key: string) {
             cardKey.usedAt = now;
         }
 
-        const expiresIn = cardKey.usedAt ? validityPeriod - (now - cardKey.usedAt) : validityPeriod;
+        const expiresIn = cardKey.usedAt ? config.cardKey.validityPeriod - (now - cardKey.usedAt) : config.cardKey.validityPeriod;
 
         return {
             success: true,

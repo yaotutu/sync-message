@@ -25,7 +25,10 @@ export default function MessagesPage() {
             const data = await response.json();
             if (data.success && data.data) {
                 setMessages(data.data);
-                setExpiresIn(data.expiresIn || 0);
+                if (data.expiresIn !== undefined) {
+                    const expiresInMs = data.expiresIn;
+                    setExpiresIn(Math.floor(expiresInMs / 1000));
+                }
                 setError('');
                 setIsValidated(true);
             } else {
@@ -132,7 +135,10 @@ export default function MessagesPage() {
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
                                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">消息列表</h1>
-                                    <Countdown expiresIn={expiresIn} onExpire={handleLogout} />
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm text-gray-600 dark:text-gray-400">卡密过期时间：</span>
+                                        <Countdown expiresIn={expiresIn} onExpire={handleLogout} />
+                                    </div>
                                 </div>
                                 <button
                                     onClick={handleLogout}
