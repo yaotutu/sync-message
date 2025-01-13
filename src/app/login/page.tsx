@@ -34,7 +34,7 @@ export default function LoginPage() {
             } else {
                 setError(data.message || '登录失败');
             }
-        } catch (_error) {
+        } catch {
             setError('登录失败，请稍后重试');
         }
     };
@@ -54,7 +54,7 @@ export default function LoginPage() {
             } else {
                 setError(data.message || '生成密钥失败');
             }
-        } catch (_error) {
+        } catch {
             setError('生成密钥失败，请稍后重试');
         }
     };

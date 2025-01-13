@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function DELETE(
-    request: NextRequest,
+    request: Request,
     context: { params: { username: string } }
-) {
+): Promise<Response> {
     const username = request.headers.get('x-username');
     const password = request.headers.get('x-password');
-    const { username: targetUsername } = context.params;
+    const targetUsername = context.params.username;
 
     try {
         const response = await fetch(
@@ -22,7 +22,7 @@ export async function DELETE(
 
         const data = await response.json();
         return NextResponse.json(data);
-    } catch (_error) {
+    } catch {
         return NextResponse.json(
             { success: false, message: '删除用户失败' },
             { status: 500 }

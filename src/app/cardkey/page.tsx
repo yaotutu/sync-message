@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { CardKey } from '@/types/user';
 import config from '@/config';
 
@@ -22,7 +22,7 @@ export default function CardKeyManagePage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(10);
 
-    const fetchCardKeys = async (user: string, pass: string) => {
+    const fetchCardKeys = useCallback(async (user: string, pass: string) => {
         try {
             setLoading(true);
             const response = await fetch('/api/user/cardkeys', {
@@ -42,12 +42,12 @@ export default function CardKeyManagePage() {
                 }
                 setError(data.message);
             }
-        } catch (error) {
+        } catch {
             setError('获取卡密列表失败，请稍后重试');
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         setIsMounted(true);
@@ -63,7 +63,7 @@ export default function CardKeyManagePage() {
             setLoading(false);
             setIsLoggedIn(false);
         }
-    }, []);
+    }, [fetchCardKeys]);
 
     const login = async () => {
         if (!username || !password) {
@@ -131,7 +131,7 @@ export default function CardKeyManagePage() {
             } else {
                 setError('生成卡密失败：' + data.message);
             }
-        } catch (error) {
+        } catch {
             setError('生成卡密失败，请稍后重试');
         }
     };
@@ -147,7 +147,7 @@ export default function CardKeyManagePage() {
             document.execCommand('copy');
             setError('复制成功！');
             setTimeout(() => setError(null), 2000);
-        } catch (_err) {
+        } catch {
             setError('复制失败，请手动复制');
         } finally {
             document.body.removeChild(textarea);

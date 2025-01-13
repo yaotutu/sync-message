@@ -129,7 +129,7 @@ export async function deleteUser(username: string) {
 
             // 删除用户
             const result = await db.run('DELETE FROM webhook_users WHERE username = ?', [username]);
-            const changes = (result as any).changes || 0;
+            const changes = result?.changes || 0;
 
             // 提交事务
             await db.run('COMMIT');
