@@ -1,13 +1,24 @@
-export interface WebhookUser {
+export interface User {
     id: number;
     username: string;
-    webhookKey: string;
+    webhookKey?: string;
     createdAt: number;
 }
 
-export interface WebhookUserResponse {
+export interface KeyLog {
+    id: number;
+    key: string;
+    username: string;
+    status: 'success' | 'invalid';
+    createdAt: number;
+}
+
+export interface ApiResponse {
     success: boolean;
     message?: string;
-    users?: WebhookUser[];
-    user?: WebhookUser;
+    data?: any;
+    users?: User[];
+    user?: User;
+    keys?: string[];
+    logs?: KeyLog[];
 } 

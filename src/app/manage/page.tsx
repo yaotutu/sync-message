@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { WebhookUser } from '@/types/manage';
+import { User } from '@/types/manage';
 
 export default function ManagePage() {
     const [password, setPassword] = useState('');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [error, setError] = useState('');
-    const [users, setUsers] = useState<WebhookUser[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [newUsername, setNewUsername] = useState('');
     const [newUserPassword, setNewUserPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -260,13 +260,15 @@ export default function ManagePage() {
                                         <div className="space-y-1">
                                             <div className="font-medium text-gray-900 dark:text-white">{user.username}</div>
                                             <div className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                                                Webhook Key: {user.webhookKey}
-                                                <button
-                                                    onClick={() => copyWebhookKey(user.webhookKey)}
-                                                    className="ml-2 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                                                >
-                                                    复制
-                                                </button>
+                                                Webhook Key: {user.webhookKey || '未设置'}
+                                                {user.webhookKey && (
+                                                    <button
+                                                        onClick={() => copyWebhookKey(user.webhookKey!)}
+                                                        className="ml-2 text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                                                    >
+                                                        复制
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                         <button
