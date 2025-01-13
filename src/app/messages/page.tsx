@@ -32,9 +32,11 @@ export default function MessagesPage() {
                 setError('');
                 setIsValidated(true);
             } else {
-                setError(data.message || '加载消息失败');
                 if (data.expired) {
                     handleLogout();
+                    setError('卡密已过期，请重新输入');
+                } else {
+                    setError(data.message || '加载消息失败');
                 }
             }
         } catch (error) {
@@ -91,8 +93,13 @@ export default function MessagesPage() {
         setCardKey('');
         setMessages([]);
         setExpiresIn(0);
-        setError('');
         setIsValidated(false);
+    };
+
+    // 处理卡密过期
+    const handleExpire = () => {
+        handleLogout();
+        setError('卡密已过期，请重新输入');
     };
 
     return (
@@ -137,7 +144,7 @@ export default function MessagesPage() {
                                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">消息列表</h1>
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm text-gray-600 dark:text-gray-400">卡密过期时间：</span>
-                                        <Countdown expiresIn={expiresIn} onExpire={handleLogout} />
+                                        <Countdown expiresIn={expiresIn} onExpire={handleExpire} />
                                     </div>
                                 </div>
                                 <button
@@ -147,11 +154,6 @@ export default function MessagesPage() {
                                     退出
                                 </button>
                             </div>
-                            {error && (
-                                <div className="mb-4 bg-red-100 dark:bg-red-900/50 border border-red-400 dark:border-red-500 text-red-700 dark:text-red-400 px-4 py-3 rounded relative text-sm sm:text-base">
-                                    {error}
-                                </div>
-                            )}
                             <MessageList messages={messages} />
                         </div>
                     </div>
