@@ -5,6 +5,7 @@ import { open } from 'sqlite';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
+import config from '@/config';
 
 // 确保数据库目录存在
 const dbDir = path.join(process.cwd(), 'data');
@@ -247,18 +248,18 @@ export async function addMessage(username: string, sms_content: string, rec_time
                 [username]
             );
 
-            // 如果超过100条消息，删除最旧的消息
-            if (countResult.count > 100) {
+            // 如果超过配置的最大消息数量，删除最早的消息
+            if (countResult.count > config.message.maxMessagesPerUser) {
                 await db.run(`
                     DELETE FROM messages
                     WHERE id IN (
                         SELECT id
                         FROM messages
                         WHERE username = ?
-                        ORDER BY received_at ASC
+                        ORDER BY COALESCE(rec_time, datetime(received_at/1000, 'unixepoch')) ASC
                         LIMIT ?
                     )
-                `, [username, countResult.count - 100]);
+                `, [username, countResult.count - config.message.maxMessagesPerUser]);
             }
 
             // 提交事务
