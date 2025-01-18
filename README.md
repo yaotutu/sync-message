@@ -1,36 +1,184 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 短信验证码同步系统 (SMS Verification Code Sync System)
 
-## Getting Started
+一个专门用于同步和展示手机验证码的 Web 系统。通过 WebHook 实时接收手机短信，并在 Web 界面安全展示。系统采用卡密验证机制进行访问控制，特别适合需要处理大量验证码的共享账号服务提供商。
 
-First, run the development server:
+## 主要特点
+
+- 📱 手机短信实时同步
+- 🔐 基于卡密的访问控制（3分钟有效期）
+- ⚡️ WebSocket 实时推送验证码
+- 🎯 专注于验证码展示
+- 👥 多用户隔离
+- 🔄 自动更新和实时刷新
+- 🕒 验证码有效期控制
+- 📊 使用统计和记录
+
+## 适用场景
+
+- 共享账号服务提供商
+- 需要处理大量验证码的业务
+- 多设备验证码同步
+- 远程验证码管理
+- 验证码共享服务
+
+## 系统要求
+
+- Node.js >= 16.0.0
+- NPM >= 8.0.0
+- SQLite3
+- Android 手机（用于安装短信转发 App）
+- 支持 WebSocket 的现代浏览器
+
+## 快速开始
+
+### 1. 服务端部署
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# 克隆项目
+git clone [项目地址]
+cd sync-message
+
+# 安装依赖
+npm install
+
+# 配置环境
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+编辑 `.env` 文件：
+```env
+PORT=3000                           # 服务器端口
+NODE_ENV=production                 # 环境（production/development）
+DB_PATH=./data/messages.db         # 数据库路径
+ADMIN_PASSWORD=your_password_here   # 管理员密码
+MAX_MESSAGES_PER_USER=50           # 每个用户最大消息数
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# 启动服务
+npm start
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 2. 手机端配置
 
-## Learn More
+1. 在 Android 手机上安装短信转发 App（需自行开发或使用第三方 App）
+2. 配置 WebHook 地址：`http://your-domain/api/webhook`
+3. 设置转发规则，建议只转发包含验证码的短信
+4. 确保手机网络稳定，建议使用 WiFi 连接
 
-To learn more about Next.js, take a look at the following resources:
+## 使用流程
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 服务提供商（管理员）
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. 访问管理后台
+   - 打开 `http://your-domain/admin.html`
+   - 输入管理员密码
 
-## Deploy on Vercel
+2. 用户和卡密管理
+   - 创建用户账号（为每个手机号创建独立账号）
+   - 生成卡密（可批量生成，分发给客户）
+   - 查看使用记录和统计
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. 监控和维护
+   - 查看系统运行状态
+   - 监控短信接收情况
+   - 管理在线用户
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 客户使用流程
+
+1. 获取卡密
+   - 从服务提供商处获取卡密
+   - 每个卡密有效期为 3 分钟
+
+2. 查看验证码
+   - 访问 `http://your-domain`
+   - 输入卡密登录
+   - 实时查看最新验证码
+   - 支持历史验证码查询（限时）
+
+## API 说明
+
+### WebHook 接口
+
+用于接收手机短信：
+```bash
+curl -X POST http://your-domain/api/webhook \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-key: YOUR_WEBHOOK_KEY" \
+  -H "x-username: PHONE_NUMBER" \
+  -d '{
+    "message": "【服务商】您的验证码是: 123456",
+    "sender": "10690123456",
+    "rec_time": "2024-01-01 12:00:00"
+  }'
+```
+
+### 验证码查询
+
+- 实时推送：`ws://your-domain/ws`
+- 历史查询：`GET /api/messages`
+  - 支持时间范围筛选
+  - 支持关键词搜索
+  - 支持服务商筛选
+
+## 安全措施
+
+1. 访问控制
+   - 卡密有效期限制（3分钟）
+   - 单次使用限制
+   - IP 访问频率限制
+
+2. 数据安全
+   - 验证码自动清理
+   - 敏感信息脱敏
+   - 数据访问隔离
+
+3. 系统安全
+   - WebHook 密钥验证
+   - HTTPS 加密传输
+   - 防止暴力破解
+
+## 注意事项
+
+1. 使用限制
+   - 卡密使用后立即失效
+   - 每个卡密仅能查看指定时间段的验证码
+   - 验证码展示有延迟（通常<1秒）
+
+2. 最佳实践
+   - 建议使用专门的手机卡接收验证码
+   - 定期清理历史数据
+   - 保持手机和服务器的时间同步
+
+3. 故障排除
+   - 确保手机网络稳定
+   - 检查短信 App 是否正常运行
+   - 验证 WebHook 配置是否正确
+
+## 常见问题
+
+### 1. 验证码接收问题
+Q: 为什么收不到最新验证码？
+A: 检查手机端 App 是否正常运行，网络是否稳定，WebHook 配置是否正确。
+
+### 2. 卡密使用问题
+Q: 卡密提前失效？
+A: 卡密设计为一次性使用，使用后立即失效。每个卡密有效期严格控制在 3 分钟内。
+
+### 3. 系统使用建议
+Q: 如何提高使用效率？
+A: 建议在验证码即将发送前生成卡密，收到验证码后立即使用，避免等待时间过长导致卡密过期。
+
+## 更新日志
+
+### v1.0.0 (2024-01-01)
+- 首次发布
+- 基础功能：验证码同步、卡密验证
+- WebSocket 实时推送
+- 数据持久化存储
+
+### v1.0.1 (2024-01-15)
+- 优化验证码识别准确率
+- 添加验证码筛选功能
+- 改进管理界面
+- 提升系统稳定性

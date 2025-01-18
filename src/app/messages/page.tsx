@@ -103,62 +103,57 @@ export default function MessagesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {!isValidated ? (
-                    <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6">
-                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">消息查看</h1>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label htmlFor="cardKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    卡密
-                                </label>
-                                <input
-                                    id="cardKey"
-                                    type="text"
-                                    value={cardKey}
-                                    onChange={(e) => setCardKey(e.target.value)}
-                                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base"
-                                    placeholder="请输入卡密"
-                                />
-                            </div>
-                            {error && (
-                                <div className="text-red-500 dark:text-red-400 text-sm">
-                                    {error}
-                                </div>
-                            )}
-                            <button
-                                type="submit"
+        <div className="w-full max-w-4xl mx-auto px-4">
+            {!isValidated ? (
+                <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 md:p-8">
+                    <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+                        消息查询系统
+                    </h1>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label htmlFor="cardKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                请输入卡密
+                            </label>
+                            <input
+                                type="text"
+                                id="cardKey"
+                                value={cardKey}
+                                onChange={(e) => setCardKey(e.target.value)}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                                placeholder="输入卡密"
                                 disabled={isLoading}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm sm:text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800 disabled:opacity-50"
-                            >
-                                {isLoading ? '验证中...' : '验证'}
-                            </button>
-                        </form>
-                    </div>
-                ) : (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-                        <div className="p-4 sm:p-6">
-                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4 sm:gap-0">
-                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">消息列表</h1>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">卡密过期时间：</span>
-                                        <Countdown expiresIn={expiresIn} onExpire={handleExpire} />
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={handleLogout}
-                                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 text-sm sm:text-base"
-                                >
-                                    退出
-                                </button>
+                            />
+                        </div>
+                        {error && (
+                            <div className="text-red-500 text-sm mt-2">
+                                {error}
                             </div>
-                            <MessageList messages={messages} />
+                        )}
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isLoading ? '验证中...' : '验证'}
+                        </button>
+                    </form>
+                </div>
+            ) : (
+                <div className="flex flex-col h-full">
+                    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg mb-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <Countdown expiresIn={expiresIn} onExpire={handleExpire} />
+                            <button
+                                onClick={handleLogout}
+                                className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition duration-150 ease-in-out"
+                            >
+                                退出登录
+                            </button>
                         </div>
                     </div>
-                )}
-            </div>
+                    <MessageList messages={messages} />
+                </div>
+            )}
         </div>
     );
 } 
