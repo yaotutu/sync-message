@@ -1,5 +1,5 @@
+import { addUser, deleteUser, getAllUsers, validateAdminPassword } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { addUser, deleteUser, getUsers, validateAdminPassword } from '@/lib/server/db';
 
 // 获取用户列表
 export async function GET(request: NextRequest) {
@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, message: '管理员密码错误' }, { status: 401 });
     }
 
-    const result = await getUsers();
+    const result = await getAllUsers();
     return NextResponse.json(result);
 }
 

@@ -2,21 +2,27 @@ import { validateUser } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
-    try {
-        const username = request.headers.get('x-username');
-        const password = request.headers.get('x-password');
+    const username = request.headers.get('x-username');
+    const password = request.headers.get('x-password');
 
-        if (!username || !password) {
-            return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
-        }
-
-        const validateResult = await validateUser(username, password);
-        return NextResponse.json(validateResult);
-    } catch (error) {
-        console.error('验证用户失败:', error);
+    if (!username || !password) {
         return NextResponse.json(
-            { success: false, message: '验证失败，请稍后重试' },
-            { status: 500 }
+            { success: false, message: '缺少用户名或密码' },
+            { status: 400 }
         );
     }
+
+    const isValid = await validateUser(username, password);
+
+    if (!isValid) {
+        return NextResponse.json(
+            { success: false, message: '用户名或密码错误' },
+            { status: 401 }
+        );
+    }
+
+    return NextResponse.json({
+        success: true,
+        data: { username }
+    });
 } 
