@@ -5,7 +5,7 @@ export const config = {
     },
     // 卡密相关配置
     cardKey: {
-        validityPeriod: 3 * 60 * 1000,  // 卡密有效期（3分钟）
+        validityPeriod: 5 * 60 * 1000,  // 卡密有效期（3分钟）
         maxUnusedKeys: 50,  // 最大未使用卡密数量
     },
     // 其他配置项可以在这里添加...
