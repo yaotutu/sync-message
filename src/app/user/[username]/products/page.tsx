@@ -7,8 +7,8 @@ export default function ProductsPage() {
     const username = params?.username as string;
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-8">
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">商品管理</h1>
                 <button
                     className="bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded-md 
@@ -18,9 +18,17 @@ export default function ProductsPage() {
                 </button>
             </div>
 
-            {/* 商品列表将在这里实现 */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                <p className="text-gray-600 dark:text-gray-300">商品管理功能即将实现...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {/* 商品列表将在这里实现 */}
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <p className="text-gray-600 dark:text-gray-300">商品管理功能即将实现...</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <p className="text-gray-600 dark:text-gray-300">商品管理功能即将实现...</p>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+                    <p className="text-gray-600 dark:text-gray-300">商品管理功能即将实现...</p>
+                </div>
             </div>
         </div>
     );

@@ -1,35 +1,30 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function UserLoginPage() {
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const [username, setUsername] = useState(searchParams?.get('username') || '');
-    const [password, setPassword] = useState(searchParams?.get('password') || '');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // 如果URL中有用户名和密码，自动尝试登录
-    useEffect(() => {
-        const urlUsername = searchParams?.get('username');
-        const urlPassword = searchParams?.get('password');
-
-        if (urlUsername && urlPassword) {
-            handleLogin(urlUsername, urlPassword);
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!username || !password) {
+            setError('请填写用户名和密码');
+            return;
         }
-    }, []);
 
-    const handleLogin = async (loginUsername: string, loginPassword: string) => {
         setError('');
         setIsLoading(true);
 
         try {
             const response = await fetch('/api/user/verify', {
                 headers: {
-                    'x-username': loginUsername,
-                    'x-password': loginPassword
+                    'x-username': username,
+                    'x-password': password
                 }
             });
 
@@ -40,24 +35,16 @@ export default function UserLoginPage() {
             }
 
             // 保存登录信息
-            localStorage.setItem('username', loginUsername);
-            localStorage.setItem('password', loginPassword);
+            localStorage.setItem('username', username);
+            localStorage.setItem('password', password);
 
             // 跳转到用户主页
-            router.push(`/user/${loginUsername}`);
+            router.push(`/user/${username}`);
         } catch (err: any) {
             setError(err.message || '登录失败，请稍后重试');
+        } finally {
             setIsLoading(false);
         }
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!username || !password) {
-            setError('请填写用户名和密码');
-            return;
-        }
-        await handleLogin(username, password);
     };
 
     return (
@@ -120,6 +107,7 @@ export default function UserLoginPage() {
                                                  dark:bg-gray-700 dark:text-white
                                                  sm:text-sm"
                                         placeholder="请输入密码"
+                                        autoComplete="current-password"
                                     />
                                 </div>
                             </div>

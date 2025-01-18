@@ -72,8 +72,8 @@ export default function UserLayout({
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* 顶部导航栏 */}
-            <nav className="bg-white dark:bg-gray-800 shadow">
-                <div className="max-w-7xl mx-auto px-4">
+            <nav className="bg-white dark:bg-gray-800 shadow fixed top-0 left-0 right-0 z-10">
+                <div className="px-4">
                     <div className="flex justify-between h-16">
                         <div className="flex items-center">
                             <Link
@@ -108,8 +108,10 @@ export default function UserLayout({
             </nav>
 
             {/* 主内容区 */}
-            <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                {children}
+            <main className="w-full pt-16 min-h-screen">
+                <div className="px-4 py-6">
+                    {children}
+                </div>
             </main>
         </div>
     );
