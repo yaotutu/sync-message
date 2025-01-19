@@ -1,82 +1,130 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+interface UserConfig {
+    pageTitle?: string;
+    pageDescription?: string;
+}
 
 export default function ProfilePage() {
     const params = useParams();
+    const router = useRouter();
     const username = params?.username as string;
 
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
+    const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    const [userConfig, setUserConfig] = useState<UserConfig>({
+        pageTitle: '',
+        pageDescription: ''
+    });
+
+    // 加载用户配置
+    useEffect(() => {
+        const loadUserConfig = async () => {
+            try {
+                const response = await fetch(`/api/user/${username}/config`);
+                const data = await response.json();
+                if (data.success && data.data) {
+                    setUserConfig(data.data);
+                }
+            } catch (err) {
+                console.error('加载用户配置失败:', err);
+            }
+        };
+
+        loadUserConfig();
+    }, [username]);
+
+    // 处理表单提交
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccess('');
-
-        // 验证密码
-        if (!newPassword || !confirmPassword) {
-            setError('请填写所有密码字段');
-            return;
-        }
-
-        if (newPassword !== confirmPassword) {
-            setError('两次输入的密码不一致');
-            return;
-        }
-
-        if (newPassword.length < 6) {
-            setError('密码长度至少为6位');
-            return;
-        }
-
         setIsLoading(true);
+
         try {
-            const response = await fetch('/api/user/update-password', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    username,
-                    newPassword,
-                    currentPassword: localStorage.getItem('password'),
-                }),
-            });
+            // 更新密码
+            if (password) {
+                const passwordResponse = await fetch(`/api/user/${username}/password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-username': username,
+                        'x-password': localStorage.getItem('password') || ''
+                    },
+                    body: JSON.stringify({ password })
+                });
 
-            const data = await response.json();
+                const passwordData = await passwordResponse.json();
+                if (!passwordData.success) {
+                    setError(passwordData.message);
+                    return;
+                }
 
-            if (!response.ok) {
-                throw new Error(data.message || '更新密码失败');
+                // 更新本地存储的密码
+                localStorage.setItem('password', password);
             }
 
-            setSuccess('密码更新成功');
-            setNewPassword('');
-            setConfirmPassword('');
-            localStorage.setItem('password', newPassword);
-        } catch (err: any) {
-            setError(err.message || '更新密码时发生错误');
+            // 更新用户配置
+            const configResponse = await fetch(`/api/user/${username}/config`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-username': username,
+                    'x-password': localStorage.getItem('password') || ''
+                },
+                body: JSON.stringify(userConfig)
+            });
+
+            const configData = await configResponse.json();
+            if (configData.success) {
+                setSuccess('设置已更新');
+            } else {
+                setError(configData.message);
+            }
+        } catch (err) {
+            setError('更新设置失败，请稍后重试');
         } finally {
             setIsLoading(false);
         }
     };
 
+    // 处理配置输入变化
+    const handleConfigChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setUserConfig(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                个人设置
-            </h1>
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">个人设置</h1>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                        修改密码
-                    </h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+                <div className="bg-red-50 dark:bg-red-900/50 text-red-500 dark:text-red-300 p-4 rounded-md">
+                    {error}
+                </div>
+            )}
+
+            {success && (
+                <div className="bg-green-50 dark:bg-green-900/50 text-green-500 dark:text-green-300 p-4 rounded-md">
+                    {success}
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-6">账号设置</h2>
+                    <div className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 用户名
@@ -86,9 +134,9 @@ export default function ProfilePage() {
                                 value={username}
                                 disabled
                                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
-                                         bg-gray-100 dark:bg-gray-700 
+                                         bg-gray-100 dark:bg-gray-900
                                          text-gray-900 dark:text-white
-                                         shadow-sm"
+                                         shadow-sm focus:border-green-500 focus:ring-green-500"
                             />
                         </div>
 
@@ -98,76 +146,70 @@ export default function ProfilePage() {
                             </label>
                             <input
                                 type="password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="留空表示不修改"
                                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
                                          bg-white dark:bg-gray-700 
                                          text-gray-900 dark:text-white
-                                         shadow-sm focus:border-green-500 focus:ring-green-500
-                                         dark:focus:border-green-400 dark:focus:ring-green-400"
-                                placeholder="输入新密码"
+                                         shadow-sm focus:border-green-500 focus:ring-green-500"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-6">消息页面设置</h2>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                页面标题
+                            </label>
+                            <input
+                                type="text"
+                                name="pageTitle"
+                                value={userConfig.pageTitle || ''}
+                                onChange={handleConfigChange}
+                                placeholder="默认为：消息查询"
+                                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
+                                         bg-white dark:bg-gray-700 
+                                         text-gray-900 dark:text-white
+                                         shadow-sm focus:border-green-500 focus:ring-green-500"
                             />
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                确认新密码
+                                页面描述
                             </label>
-                            <input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
+                            <textarea
+                                name="pageDescription"
+                                value={userConfig.pageDescription || ''}
+                                onChange={handleConfigChange}
+                                rows={3}
+                                placeholder="显示在标题下方的描述文字"
                                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 
                                          bg-white dark:bg-gray-700 
                                          text-gray-900 dark:text-white
-                                         shadow-sm focus:border-green-500 focus:ring-green-500
-                                         dark:focus:border-green-400 dark:focus:ring-green-400"
-                                placeholder="再次输入新密码"
+                                         shadow-sm focus:border-green-500 focus:ring-green-500"
                             />
                         </div>
-
-                        {error && (
-                            <div className="text-red-500 text-sm">{error}</div>
-                        )}
-
-                        {success && (
-                            <div className="text-green-500 text-sm">{success}</div>
-                        )}
-
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full flex justify-center py-2 px-4 
-                                     border border-transparent rounded-md shadow-sm 
-                                     text-sm font-medium text-white 
-                                     bg-green-600 hover:bg-green-700 
-                                     focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500
-                                     dark:focus:ring-offset-gray-800
-                                     disabled:opacity-50 disabled:cursor-not-allowed
-                                     transition-colors"
-                        >
-                            {isLoading ? (
-                                <div className="flex items-center">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                    更新中...
-                                </div>
-                            ) : (
-                                '更新设置'
-                            )}
-                        </button>
-                    </form>
+                    </div>
                 </div>
 
-                {/* 预留空间给其他设置选项 */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                        其他设置
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-300">
-                        更多设置选项即将推出...
-                    </p>
+                <div className="flex justify-end">
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="px-4 py-2 bg-green-500 dark:bg-green-600 text-white rounded-md
+                                 hover:bg-green-600 dark:hover:bg-green-700
+                                 focus:outline-none focus:ring-2 focus:ring-green-500
+                                 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isLoading ? '保存中...' : '保存'}
+                    </button>
                 </div>
-            </div>
+            </form>
         </div>
     );
 } 

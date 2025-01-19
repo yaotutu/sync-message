@@ -65,6 +65,26 @@ async function getDb() {
                 updated_at INTEGER DEFAULT (unixepoch()),
                 FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
             );
+
+            CREATE TABLE IF NOT EXISTS user_configs (
+                username TEXT PRIMARY KEY,
+                page_title TEXT,
+                page_description TEXT,
+                created_at INTEGER DEFAULT (unixepoch()),
+                updated_at INTEGER DEFAULT (unixepoch()),
+                FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS card_keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                key TEXT NOT NULL UNIQUE,
+                used INTEGER DEFAULT 0,
+                message TEXT,
+                created_at INTEGER DEFAULT (unixepoch()),
+                used_at INTEGER,
+                FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
+            );
         `);
 
         return db;
@@ -318,6 +338,208 @@ export async function deleteProduct(id: number, username: string): Promise<{ suc
     } catch (error) {
         console.error('删除商品时发生错误:', error);
         return { success: false, message: '删除商品失败，请稍后重试' };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 获取用户配置
+export async function getUserConfig(username: string): Promise<{ success: boolean; data?: any }> {
+    let db;
+    try {
+        db = await getDb();
+        const config = await db.get(
+            `SELECT 
+                page_title as pageTitle,
+                page_description as pageDescription,
+                created_at as createdAt,
+                updated_at as updatedAt
+            FROM user_configs 
+            WHERE username = ?`,
+            username
+        );
+        return { success: true, data: config || {} };
+    } catch (error) {
+        console.error('获取用户配置失败:', error);
+        return { success: false, data: {} };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 更新用户配置
+export async function updateUserConfig(
+    username: string,
+    config: {
+        pageTitle?: string;
+        pageDescription?: string;
+    }
+): Promise<{ success: boolean; message: string }> {
+    let db;
+    try {
+        db = await getDb();
+        const timestamp = Math.floor(Date.now() / 1000);
+
+        // 检查是否已存在配置
+        const existingConfig = await db.get('SELECT username FROM user_configs WHERE username = ?', username);
+
+        if (existingConfig) {
+            // 更新现有配置
+            await db.run(
+                `UPDATE user_configs 
+                SET page_title = ?, page_description = ?, updated_at = ?
+                WHERE username = ?`,
+                [
+                    config.pageTitle || null,
+                    config.pageDescription || null,
+                    timestamp,
+                    username
+                ]
+            );
+        } else {
+            // 创建新配置
+            await db.run(
+                `INSERT INTO user_configs (
+                    username, page_title, page_description, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?)`,
+                [
+                    username,
+                    config.pageTitle || null,
+                    config.pageDescription || null,
+                    timestamp,
+                    timestamp
+                ]
+            );
+        }
+
+        return { success: true, message: '配置更新成功' };
+    } catch (error) {
+        console.error('更新用户配置失败:', error);
+        return { success: false, message: '更新配置失败，请稍后重试' };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 获取用户的卡密列表
+export async function getUserCardKeys(username: string): Promise<{ success: boolean; data: any[] }> {
+    let db;
+    try {
+        db = await getDb();
+        const keys = await db.all(
+            `SELECT 
+                id, key, used, message, 
+                created_at as createdAt,
+                used_at as usedAt
+            FROM card_keys 
+            WHERE username = ?
+            ORDER BY created_at DESC`,
+            username
+        );
+        return { success: true, data: keys };
+    } catch (error) {
+        console.error('获取卡密列表失败:', error);
+        return { success: false, data: [] };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 添加卡密
+export async function addCardKey(
+    username: string,
+    key: string,
+    message: string
+): Promise<{ success: boolean; message: string }> {
+    let db;
+    try {
+        db = await getDb();
+        const timestamp = Math.floor(Date.now() / 1000);
+        await db.run(
+            'INSERT INTO card_keys (username, key, message, created_at) VALUES (?, ?, ?, ?)',
+            [username, key, message, timestamp]
+        );
+        return { success: true, message: '卡密添加成功' };
+    } catch (error) {
+        console.error('添加卡密失败:', error);
+        if (error.message.includes('UNIQUE constraint failed')) {
+            return { success: false, message: '卡密已存在' };
+        }
+        return { success: false, message: '添加卡密失败，请稍后重试' };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 删除卡密
+export async function deleteCardKey(
+    id: number,
+    username: string
+): Promise<{ success: boolean; message: string }> {
+    let db;
+    try {
+        db = await getDb();
+        const result = await db.run(
+            'DELETE FROM card_keys WHERE id = ? AND username = ?',
+            [id, username]
+        ) as RunResult;
+
+        if (result && result.changes > 0) {
+            return { success: true, message: '卡密删除成功' };
+        }
+        return { success: false, message: '卡密不存在或无权限删除' };
+    } catch (error) {
+        console.error('删除卡密失败:', error);
+        return { success: false, message: '删除卡密失败，请稍后重试' };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 验证卡密并获取消息
+export async function validateCardKey(
+    username: string,
+    key: string
+): Promise<{ success: boolean; message?: string; error?: string }> {
+    let db;
+    try {
+        db = await getDb();
+        const cardKey = await db.get(
+            'SELECT id, used, message FROM card_keys WHERE username = ? AND key = ?',
+            [username, key]
+        );
+
+        if (!cardKey) {
+            return { success: false, error: '无效的卡密' };
+        }
+
+        if (cardKey.used) {
+            return { success: false, error: '该卡密已被使用' };
+        }
+
+        // 标记卡密为已使用
+        const timestamp = Math.floor(Date.now() / 1000);
+        await db.run(
+            'UPDATE card_keys SET used = 1, used_at = ? WHERE id = ?',
+            [timestamp, cardKey.id]
+        );
+
+        return { success: true, message: cardKey.message };
+    } catch (error) {
+        console.error('验证卡密失败:', error);
+        return { success: false, error: '验证卡密失败，请稍后重试' };
     } finally {
         if (db) {
             await db.close();

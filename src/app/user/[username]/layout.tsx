@@ -96,6 +96,12 @@ export default function UserLayout({
                             >
                                 商品管理
                             </Link>
+                            <Link
+                                href={`/user/${username}/cardkeys`}
+                                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium"
+                            >
+                                卡密管理
+                            </Link>
                             <button
                                 onClick={handleLogout}
                                 className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-3 py-2 rounded-md text-sm font-medium"
