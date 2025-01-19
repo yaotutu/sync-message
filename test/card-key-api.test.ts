@@ -1,13 +1,6 @@
 import { addCardKey, addUser, deleteCardKey, getUserCardKeys, validateCardKey } from '../src/lib/server/db';
 import { prisma } from '../src/lib/server/prisma';
 
-interface ApiResponse<T = any> {
-    success: boolean;
-    message?: string;
-    error?: string;
-    data?: T;
-}
-
 async function testCardKeyAPIs() {
     try {
         // 首先创建测试用户

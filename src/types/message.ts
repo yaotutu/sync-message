@@ -1,9 +1,15 @@
 export interface Message {
     id: number;
-    username: string;
-    sms_content: string;
-    rec_time?: string;
-    received_at: number;
+    content: string;
+    createdAt: number;
+    sender: string;
+    type: 'text' | 'image' | 'file';
+    metadata?: {
+        filename?: string;
+        filesize?: number;
+        mimetype?: string;
+        url?: string;
+    };
 }
 
 export interface CardKeyValidateResponse {

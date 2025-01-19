@@ -1,12 +1,6 @@
 import { addUser, getUserConfig, updateUserConfig } from '../src/lib/server/db';
 import { prisma } from '../src/lib/server/prisma';
 
-interface ApiResponse<T = any> {
-    success: boolean;
-    message?: string;
-    data?: T;
-}
-
 async function testUserConfigAPIs() {
     try {
         // 首先创建测试用户

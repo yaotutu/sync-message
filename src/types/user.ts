@@ -4,7 +4,7 @@ export interface CardKey {
     username: string;
     status: 'unused' | 'used' | 'expired';
     createdAt: number;
-    usedAt?: number | null;
+    usedAt: number | null;
     expiresIn?: number;
 }
 

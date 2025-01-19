@@ -7,41 +7,68 @@ interface MessageListProps {
 }
 
 export default function MessageList({ messages }: MessageListProps) {
-    // 对消息进行排序，最新的消息在最上面
-    const sortedMessages = [...messages].sort((a, b) => {
-        const timeA = a.rec_time ? new Date(a.rec_time).getTime() : a.received_at;
-        const timeB = b.rec_time ? new Date(b.rec_time).getTime() : b.received_at;
-        return timeB - timeA;
-    });
-
     return (
-        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg shadow-lg flex flex-col h-[calc(100vh-16rem)]">
-            {sortedMessages.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
-                    <p className="text-gray-500 dark:text-gray-400">暂无消息</p>
-                </div>
-            ) : (
-                <div className="flex-1 overflow-y-auto p-4">
-                    <div className="space-y-4">
-                        {sortedMessages.map((message) => (
-                            <div
-                                key={message.id}
-                                className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-md hover:shadow-lg transition-shadow duration-200"
-                            >
-                                <div className="text-sm sm:text-base text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words leading-relaxed">
-                                    {message.sms_content}
-                                </div>
-                                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                                    <div className="flex flex-col sm:flex-row sm:justify-between text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                                        <span className="mb-1 sm:mb-0">用户名: {message.username}</span>
-                                        <span>
-                                            接收时间: {message.rec_time || new Date(message.received_at).toLocaleString()}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
+        <div className="space-y-4">
+            {messages.map((message) => (
+                <div
+                    key={message.id}
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4"
+                >
+                    <div className="flex justify-between items-start mb-2">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(message.createdAt).toLocaleString()}
+                        </span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {message.sender}
+                        </span>
                     </div>
+                    {message.type === 'text' && (
+                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                            {message.content}
+                        </p>
+                    )}
+                    {message.type === 'image' && message.metadata?.url && (
+                        <img
+                            src={message.metadata.url}
+                            alt={message.content}
+                            className="max-w-full h-auto rounded-lg"
+                        />
+                    )}
+                    {message.type === 'file' && message.metadata && (
+                        <div className="flex items-center space-x-2">
+                            <svg
+                                className="w-6 h-6 text-gray-500 dark:text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                />
+                            </svg>
+                            <a
+                                href={message.metadata.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+                            >
+                                {message.metadata.filename}
+                                {message.metadata.filesize && (
+                                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                                        ({Math.round(message.metadata.filesize / 1024)}KB)
+                                    </span>
+                                )}
+                            </a>
+                        </div>
+                    )}
+                </div>
+            ))}
+            {messages.length === 0 && (
+                <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                    暂无消息
                 </div>
             )}
         </div>

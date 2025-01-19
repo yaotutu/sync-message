@@ -40,7 +40,7 @@ async function testProductAPIs() {
         if (productId) {
             const updateData = {
                 ...productData,
-                id: productId,
+                id: Number(productId),
                 title: '更新后的商品名称',
                 price: 199.99
             };
@@ -51,7 +51,7 @@ async function testProductAPIs() {
         // 测试删除商品
         console.log('\n5. 测试删除商品');
         if (productId) {
-            result = await deleteProduct(productId, 'testuser');
+            result = await deleteProduct(Number(productId), 'testuser');
             console.log(result);
         }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface CountdownProps {
     expiresIn: number;
@@ -17,13 +17,13 @@ export default function Countdown({ expiresIn, onExpire }: CountdownProps) {
         }
 
         const timer = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
+            setTimeLeft(prev => {
+                const newTime = prev - 1;
+                if (newTime <= 0) {
                     clearInterval(timer);
                     onExpire();
-                    return 0;
                 }
-                return prev - 1;
+                return newTime;
             });
         }, 1000);
 
@@ -34,8 +34,8 @@ export default function Countdown({ expiresIn, onExpire }: CountdownProps) {
     const seconds = timeLeft % 60;
 
     return (
-        <span className="font-mono text-sm">
-            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
-        </span>
+        <div className="text-gray-600 dark:text-gray-400">
+            剩余时间：{minutes}分{seconds}秒
+        </div>
     );
 } 
