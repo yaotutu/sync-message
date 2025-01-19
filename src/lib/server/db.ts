@@ -15,6 +15,19 @@ interface User {
     createdAt?: number;
 }
 
+interface Product {
+    id?: number;
+    username: string;
+    title: string;
+    imageUrl?: string;
+    link: string;
+    price?: number;
+    description?: string;
+    notes?: string;
+    createdAt?: number;
+    updatedAt?: number;
+}
+
 // 确保数据目录存在
 async function ensureDbExists() {
     const dbDir = path.dirname(DB_PATH);
@@ -37,7 +50,21 @@ async function getDb() {
                 username TEXT PRIMARY KEY,
                 password TEXT NOT NULL,
                 created_at INTEGER DEFAULT (unixepoch())
-            )
+            );
+
+            CREATE TABLE IF NOT EXISTS products (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                title TEXT NOT NULL,
+                image_url TEXT,
+                link TEXT NOT NULL,
+                price REAL,
+                description TEXT,
+                notes TEXT,
+                created_at INTEGER DEFAULT (unixepoch()),
+                updated_at INTEGER DEFAULT (unixepoch()),
+                FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
+            );
         `);
 
         return db;
@@ -161,6 +188,136 @@ export async function deleteUser(username: string): Promise<{ success: boolean; 
     } catch (error) {
         console.error('删除用户时发生错误:', error);
         return { success: false, message: '删除用户失败，请稍后重试' };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 添加商品
+export async function addProduct(product: Product): Promise<{ success: boolean; message: string; data?: Product }> {
+    let db;
+    try {
+        db = await getDb();
+        const timestamp = Math.floor(Date.now() / 1000);
+        const result = await db.run(
+            `INSERT INTO products (
+                username, title, image_url, link, price, description, notes, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                product.username,
+                product.title,
+                product.imageUrl || null,
+                product.link,
+                product.price || null,
+                product.description || null,
+                product.notes || null,
+                timestamp,
+                timestamp
+            ]
+        ) as RunResult;
+
+        if (result.lastID) {
+            const newProduct = await db.get(
+                `SELECT 
+                    id, username, title, image_url as imageUrl, link, price, description, notes,
+                    created_at as createdAt, updated_at as updatedAt
+                FROM products WHERE id = ?`,
+                result.lastID
+            );
+            return { success: true, message: '商品添加成功', data: newProduct };
+        }
+        return { success: false, message: '商品添加失败' };
+    } catch (error) {
+        console.error('添加商品时发生错误:', error);
+        return { success: false, message: '添加商品失败，请稍后重试' };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 获取用户的商品列表
+export async function getUserProducts(username: string): Promise<{ success: boolean; data: Product[] }> {
+    let db;
+    try {
+        db = await getDb();
+        const products = await db.all(
+            `SELECT 
+                id, username, title, image_url as imageUrl, link, price, description, notes,
+                created_at as createdAt, updated_at as updatedAt
+            FROM products 
+            WHERE username = ?
+            ORDER BY created_at DESC`,
+            username
+        );
+        return { success: true, data: products };
+    } catch (error) {
+        console.error('获取商品列表失败:', error);
+        return { success: false, data: [] };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 更新商品
+export async function updateProduct(product: Product): Promise<{ success: boolean; message: string }> {
+    let db;
+    try {
+        db = await getDb();
+        const timestamp = Math.floor(Date.now() / 1000);
+        const result = await db.run(
+            `UPDATE products 
+            SET title = ?, image_url = ?, link = ?, price = ?, description = ?, notes = ?, updated_at = ?
+            WHERE id = ? AND username = ?`,
+            [
+                product.title,
+                product.imageUrl || null,
+                product.link,
+                product.price || null,
+                product.description || null,
+                product.notes || null,
+                timestamp,
+                product.id,
+                product.username
+            ]
+        ) as RunResult;
+
+        if (result && result.changes > 0) {
+            return { success: true, message: '商品更新成功' };
+        }
+        return { success: false, message: '商品不存在或无权限修改' };
+    } catch (error) {
+        console.error('更新商品时发生错误:', error);
+        return { success: false, message: '更新商品失败，请稍后重试' };
+    } finally {
+        if (db) {
+            await db.close();
+        }
+    }
+}
+
+// 删除商品
+export async function deleteProduct(id: number, username: string): Promise<{ success: boolean; message: string }> {
+    let db;
+    try {
+        db = await getDb();
+        const result = await db.run(
+            'DELETE FROM products WHERE id = ? AND username = ?',
+            [id, username]
+        ) as RunResult;
+
+        if (result && result.changes > 0) {
+            return { success: true, message: '商品删除成功' };
+        }
+        return { success: false, message: '商品不存在或无权限删除' };
+    } catch (error) {
+        console.error('删除商品时发生错误:', error);
+        return { success: false, message: '删除商品失败，请稍后重试' };
     } finally {
         if (db) {
             await db.close();
