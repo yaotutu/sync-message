@@ -272,7 +272,7 @@ function generateCardKey(): string {
 }
 
 // 添加卡密
-export async function addCardKey(username: string): Promise<{ success: boolean; message: string; data?: any }> {
+export async function addCardKey(username: string, count: number = 1): Promise<{ success: boolean; message: string; data?: any }> {
     try {
         const user = await prismaClient.user.findUnique({
             where: { username }
@@ -282,18 +282,23 @@ export async function addCardKey(username: string): Promise<{ success: boolean; 
             return { success: false, message: '用户不存在' };
         }
 
-        const cardKey = await prismaClient.cardKey.create({
-            data: {
-                key: generateCardKey(),
-                userId: user.id,
-                used: false
-            }
-        });
+        // 批量创建卡密
+        const cardKeys = await prismaClient.$transaction(
+            Array(count).fill(0).map(() =>
+                prismaClient.cardKey.create({
+                    data: {
+                        key: generateCardKey(),
+                        userId: user.id,
+                        used: false
+                    }
+                })
+            )
+        );
 
         return {
             success: true,
-            message: '卡密创建成功',
-            data: cardKey
+            message: `成功创建 ${count} 个卡密`,
+            data: cardKeys
         };
     } catch (error) {
         console.error('创建卡密失败:', error);

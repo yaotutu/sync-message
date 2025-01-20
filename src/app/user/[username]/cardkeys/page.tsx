@@ -122,13 +122,15 @@ export default function CardKeysPage() {
             const data = await response.json();
             if (data.success) {
                 // 保存新生成的卡密
-                const newKeys = data.data.map((key: CardKey) => key.key);
+                const newKeys = Array.isArray(data.data) ? data.data.map((key: CardKey) => key.key) : [data.data.key];
                 setNewlyGeneratedKeys(newKeys);
-                fetchCardKeys();
+                await fetchCardKeys(); // 重新获取卡密列表
+                setError(data.message); // 显示成功消息
             } else {
                 setError('生成卡密失败：' + data.message);
             }
-        } catch {
+        } catch (error) {
+            console.error('生成卡密失败:', error);
             setError('生成卡密失败，请稍后重试');
         }
     };

@@ -47,9 +47,30 @@ export async function GET(
 }
 
 // 生成新卡密
-export async function POST(req: NextRequest, { params }: { params: { username: string } }) {
+export async function POST(
+    req: NextRequest,
+    context: { params: { username: string } }
+) {
     try {
-        const result = await addCardKey(params.username);
+        const { username } = await context.params;
+        const count = Number(req.nextUrl.searchParams.get('count')) || 1;
+
+        // 验证用户权限
+        const authUsername = req.headers.get('x-username');
+        const authPassword = req.headers.get('x-password');
+
+        if (!authUsername || !authPassword) {
+            return NextResponse.json({ success: false, message: '未提供认证信息' });
+        }
+
+        // 验证用户
+        const validationResult = await validateUser(authUsername, authPassword);
+        if (!validationResult.success) {
+            return NextResponse.json({ success: false, message: '无效的用户名或密码' });
+        }
+
+        // 创建卡密
+        const result = await addCardKey(username, count);
         return NextResponse.json(result);
     } catch (error) {
         console.error('添加卡密失败:', error);
@@ -58,8 +79,12 @@ export async function POST(req: NextRequest, { params }: { params: { username: s
 }
 
 // 删除卡密
-export async function DELETE(req: NextRequest, { params }: { params: { username: string } }) {
+export async function DELETE(
+    req: NextRequest,
+    context: { params: { username: string } }
+) {
     try {
+        const { username } = await context.params;
         const { id } = await req.json();
         const result = await deleteCardKey(id);
         return NextResponse.json(result);
