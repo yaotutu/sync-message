@@ -29,12 +29,12 @@ export async function POST(request: NextRequest) {
 
         const validateResult = await validateUser(username, password);
         if (!validateResult.success) {
-            return NextResponse.json({ success: false, message: '用户名或密码错误' }, { status: 401 });
+            return NextResponse.json(validateResult, { status: 401 });
         }
 
         // 获取现有配置
-        const configResult = await getUserConfig(username, 'products');
-        let products = configResult.data || [];
+        const configResult = await getUserConfig(username);
+        let products = configResult.data?.products || [];
 
         // 如果是删除操作
         if (request.headers.get('Content-Type') === 'application/json') {

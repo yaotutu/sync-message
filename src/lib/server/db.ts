@@ -2,6 +2,8 @@ import { PrismaClient } from '@prisma/client';
 
 const prismaClient = new PrismaClient();
 
+export const db = prismaClient;
+
 // 验证管理员密码
 export async function validateAdminPassword(password: string): Promise<boolean> {
     const adminPassword = process.env.ADMIN_PASSWORD;
@@ -13,15 +15,18 @@ export async function validateAdminPassword(password: string): Promise<boolean> 
 }
 
 // 验证用户
-export async function validateUser(username: string, password: string): Promise<boolean> {
+export async function validateUser(username: string, password: string): Promise<{ success: boolean; message: string }> {
     try {
         const user = await prismaClient.user.findUnique({
             where: { username }
         });
-        return user?.password === password;
+        if (!user || user.password !== password) {
+            return { success: false, message: '用户名或密码错误' };
+        }
+        return { success: true, message: '验证成功' };
     } catch (error) {
         console.error('验证用户失败:', error);
-        return false;
+        return { success: false, message: '验证失败' };
     }
 }
 
@@ -180,7 +185,11 @@ export async function getUserConfig(username: string): Promise<{ success: boolea
 }
 
 // 更新用户配置
-export async function updateUserConfig(username: string, data: UserConfigData): Promise<{ success: boolean; message: string }> {
+export async function updateUserConfig(
+    username: string,
+    data: UserConfigData | string,
+    value?: any
+): Promise<{ success: boolean; message: string }> {
     try {
         const user = await prismaClient.user.findUnique({
             where: { username }
@@ -190,16 +199,21 @@ export async function updateUserConfig(username: string, data: UserConfigData): 
             return { success: false, message: '用户不存在' };
         }
 
+        let updateData: any;
+        if (typeof data === 'string') {
+            // 处理单个配置项更新
+            updateData = { [data]: value };
+        } else {
+            // 处理整个配置对象更新
+            updateData = data;
+        }
+
         await prismaClient.userConfig.upsert({
             where: { userId: user.id },
-            update: {
-                theme: data.theme || null,
-                language: data.language || null
-            },
+            update: updateData,
             create: {
                 userId: user.id,
-                theme: data.theme || null,
-                language: data.language || null
+                ...updateData
             }
         });
 
@@ -269,24 +283,28 @@ export async function deleteCardKey(id: string): Promise<{ success: boolean; mes
 }
 
 // 验证卡密
-export async function validateCardKey(key: string): Promise<boolean> {
+export async function validateCardKey(key: string): Promise<{ success: boolean; message: string }> {
     try {
-        const cardKey = await prismaClient.cardKey.findFirst({
-            where: { key, status: 'UNUSED' }
+        const cardKey = await prismaClient.cardKey.findUnique({
+            where: { key }
         });
 
         if (!cardKey) {
-            return false;
+            return { success: false, message: '卡密不存在' };
+        }
+
+        if (cardKey.status === 'USED') {
+            return { success: false, message: '卡密已使用' };
         }
 
         await prismaClient.cardKey.update({
-            where: { id: cardKey.id },
+            where: { key },
             data: { status: 'USED' }
         });
 
-        return true;
+        return { success: true, message: '验证成功' };
     } catch (error) {
         console.error('验证卡密失败:', error);
-        return false;
+        return { success: false, message: '验证失败' };
     }
 } 

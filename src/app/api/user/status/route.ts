@@ -1,24 +1,23 @@
-import { db } from '@/lib/server/db';
+import { validateUser } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
     try {
-        const session = request.cookies.get('session')?.value;
-        if (!session) {
-            return NextResponse.json({ loggedIn: false });
+        const username = req.headers.get('x-username');
+        const password = req.headers.get('x-password');
+
+        if (!username || !password) {
+            return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
         }
 
-        const user = await db.get(
-            'SELECT username FROM webhook_users WHERE session = ?',
-            [session]
-        );
+        const validateResult = await validateUser(username, password);
+        if (!validateResult.success) {
+            return NextResponse.json(validateResult, { status: 401 });
+        }
 
-        return NextResponse.json({
-            loggedIn: !!user,
-            username: user?.username
-        });
+        return NextResponse.json({ success: true, message: '已登录' });
     } catch (error) {
-        console.error('检查用户状态失败:', error);
-        return NextResponse.json({ loggedIn: false });
+        console.error('检查登录状态失败:', error);
+        return NextResponse.json({ success: false, message: '服务器错误' }, { status: 500 });
     }
 } 

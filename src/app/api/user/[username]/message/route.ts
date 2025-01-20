@@ -8,9 +8,9 @@ export async function GET(req: NextRequest, { params }: { params: { username: st
             return NextResponse.json({ success: false, message: '未提供卡密' });
         }
 
-        const result = await validateCardKey(key);
-        if (!result.success) {
-            return NextResponse.json(result);
+        const validateResult = await validateCardKey(key);
+        if (!validateResult.success) {
+            return NextResponse.json(validateResult);
         }
 
         const [products, config] = await Promise.all([
