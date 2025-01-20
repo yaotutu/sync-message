@@ -1,39 +1,28 @@
-import { addUser, deleteUser, getAllUsers, updateUserPassword, validateUser } from '../src/lib/server/db';
-import { prisma } from '../src/lib/server/prisma';
-
-interface TestResult {
-    success: boolean;
-    message?: string;
-    data?: any;
-}
+import { addUser, deleteUser, getAllUsers, validateUser } from '../src/lib/server/db';
 
 async function testUserAPIs() {
     try {
-        console.log('1. 测试添加用户');
-        let result: TestResult = await addUser('testuser', 'password123');
-        console.log(result);
+        console.log('开始测试用户 API...');
 
-        console.log('\n2. 测试用户验证');
-        const isValid = await validateUser('testuser', 'password123');
-        console.log('用户验证结果:', isValid);
+        // 测试添加用户
+        const addResult = await addUser('testuser', 'testpass');
+        console.log('添加用户结果:', addResult);
 
-        console.log('\n3. 测试获取所有用户');
-        const users = await getAllUsers();
-        console.log(users);
+        // 测试验证用户
+        const validateResult = await validateUser('testuser', 'testpass');
+        console.log('验证用户结果:', validateResult);
 
-        console.log('\n4. 测试更新用户密码');
-        await updateUserPassword('testuser', 'newpassword123');
-        const isValidAfterUpdate = await validateUser('testuser', 'newpassword123');
-        console.log('密码更新后验证结果:', isValidAfterUpdate);
+        // 测试获取所有用户
+        const getAllResult = await getAllUsers();
+        console.log('获取所有用户结果:', getAllResult);
 
-        console.log('\n5. 测试删除用户');
-        result = await deleteUser('testuser');
-        console.log(result);
+        // 测试删除用户
+        const deleteResult = await deleteUser('testuser');
+        console.log('删除用户结果:', deleteResult);
 
-        await prisma.$disconnect();
+        console.log('用户 API 测试完成');
     } catch (error) {
         console.error('测试过程中发生错误:', error);
-        await prisma.$disconnect();
     }
 }
 

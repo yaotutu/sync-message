@@ -1,161 +1,52 @@
-import { addProduct, deleteProduct, getUserProducts, updateProduct, validateUser } from '@/lib/server/db';
+import { addProduct, deleteProduct, getUserProducts, updateProduct } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-// 获取用户的商品列表
-export async function GET(
-    request: NextRequest,
-    context: { params: { username: string } }
-) {
+// GET 获取用户产品列表
+export async function GET(req: NextRequest, { params }: { params: { username: string } }) {
     try {
-        const params = await context.params;
-        const username = params.username;
-        const storedUsername = request.headers.get('x-username');
-        const storedPassword = request.headers.get('x-password');
-
-        if (!storedUsername || !storedPassword) {
-            return NextResponse.json({ success: false, message: '未提供认证信息' }, { status: 401 });
-        }
-
-        const isValid = await validateUser(storedUsername, storedPassword);
-        if (!isValid || storedUsername !== username) {
-            return NextResponse.json({ success: false, message: '认证失败' }, { status: 401 });
-        }
-
-        const result = await getUserProducts(username);
-        if (result.success) {
-            return NextResponse.json({ success: true, products: result.data });
-        } else {
-            return NextResponse.json(
-                { success: false, message: '获取产品列表失败' },
-                { status: 500 }
-            );
-        }
+        const result = await getUserProducts(params.username);
+        return NextResponse.json(result);
     } catch (error) {
-        return NextResponse.json(
-            { success: false, message: '获取产品列表失败' },
-            { status: 500 }
-        );
+        console.error('获取用户产品失败:', error);
+        return NextResponse.json({ success: false, message: '获取用户产品失败' });
     }
 }
 
-// 添加新商品
-export async function POST(
-    request: NextRequest,
-    context: { params: { username: string } }
-) {
+// POST 添加产品
+export async function POST(req: NextRequest, { params }: { params: { username: string } }) {
     try {
-        const params = await context.params;
-        const username = params.username;
-        const storedUsername = request.headers.get('x-username');
-        const storedPassword = request.headers.get('x-password');
-
-        if (!storedUsername || !storedPassword) {
-            return NextResponse.json({ success: false, message: '未提供认证信息' }, { status: 401 });
-        }
-
-        const isValid = await validateUser(storedUsername, storedPassword);
-        if (!isValid || storedUsername !== username) {
-            return NextResponse.json({ success: false, message: '认证失败' }, { status: 401 });
-        }
-
-        const body = await request.json();
-        const result = await addProduct(username, body);
-        if (result.success) {
-            return NextResponse.json({ success: true, message: '添加产品成功' });
-        } else {
-            return NextResponse.json(
-                { success: false, message: result.message || '添加产品失败' },
-                { status: 500 }
-            );
-        }
+        const data = await req.json();
+        const result = await addProduct({
+            ...data,
+            userId: params.username
+        });
+        return NextResponse.json(result);
     } catch (error) {
-        return NextResponse.json(
-            { success: false, message: '添加产品失败' },
-            { status: 500 }
-        );
+        console.error('添加产品失败:', error);
+        return NextResponse.json({ success: false, message: '添加产品失败' });
     }
 }
 
-// 更新商品
-export async function PUT(
-    request: NextRequest,
-    context: { params: { username: string } }
-) {
+// PUT 更新产品
+export async function PUT(req: NextRequest, { params }: { params: { username: string } }) {
     try {
-        const params = await context.params;
-        const username = params.username;
-        const storedUsername = request.headers.get('x-username');
-        const storedPassword = request.headers.get('x-password');
-
-        if (!storedUsername || !storedPassword) {
-            return NextResponse.json({ success: false, message: '未提供认证信息' }, { status: 401 });
-        }
-
-        const isValid = await validateUser(storedUsername, storedPassword);
-        if (!isValid || storedUsername !== username) {
-            return NextResponse.json({ success: false, message: '认证失败' }, { status: 401 });
-        }
-
-        const body = await request.json();
-        const result = await updateProduct(username, body);
-        if (result.success) {
-            return NextResponse.json({ success: true, message: '更新产品成功' });
-        } else {
-            return NextResponse.json(
-                { success: false, message: result.message || '更新产品失败' },
-                { status: 500 }
-            );
-        }
+        const { id, ...data } = await req.json();
+        const result = await updateProduct(id, data);
+        return NextResponse.json(result);
     } catch (error) {
-        return NextResponse.json(
-            { success: false, message: '更新产品失败' },
-            { status: 500 }
-        );
+        console.error('更新产品失败:', error);
+        return NextResponse.json({ success: false, message: '更新产品失败' });
     }
 }
 
-// 删除商品
-export async function DELETE(
-    request: NextRequest,
-    context: { params: { username: string } }
-) {
+// DELETE 删除产品
+export async function DELETE(req: NextRequest, { params }: { params: { username: string } }) {
     try {
-        const params = await context.params;
-        const username = params.username;
-        const url = new URL(request.url);
-        const id = url.searchParams.get('id');
-        const storedUsername = request.headers.get('x-username');
-        const storedPassword = request.headers.get('x-password');
-
-        if (!storedUsername || !storedPassword) {
-            return NextResponse.json({ success: false, message: '未提供认证信息' }, { status: 401 });
-        }
-
-        const isValid = await validateUser(storedUsername, storedPassword);
-        if (!isValid || storedUsername !== username) {
-            return NextResponse.json({ success: false, message: '认证失败' }, { status: 401 });
-        }
-
-        if (!id) {
-            return NextResponse.json(
-                { success: false, message: '未提供产品ID' },
-                { status: 400 }
-            );
-        }
-
-        const result = await deleteProduct(parseInt(id), username);
-        if (result.success) {
-            return NextResponse.json({ success: true, message: '删除产品成功' });
-        } else {
-            return NextResponse.json(
-                { success: false, message: result.message || '删除产品失败' },
-                { status: 500 }
-            );
-        }
+        const { id } = await req.json();
+        const result = await deleteProduct(id);
+        return NextResponse.json(result);
     } catch (error) {
-        return NextResponse.json(
-            { success: false, message: '删除产品失败' },
-            { status: 500 }
-        );
+        console.error('删除产品失败:', error);
+        return NextResponse.json({ success: false, message: '删除产品失败' });
     }
 } 

@@ -1,51 +1,32 @@
-import { getUserProducts, validateCardKey } from '@/lib/server/db';
+import { getUserConfig, getUserProducts, validateCardKey } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(
-    request: NextRequest,
-    context: { params: { username: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: { username: string } }) {
     try {
-        const params = await context.params;
-        const username = params.username;
-        const url = new URL(request.url);
-        const key = url.searchParams.get('key');
-
+        const key = req.nextUrl.searchParams.get('key');
         if (!key) {
-            return NextResponse.json(
-                { success: false, message: '未提供卡密' },
-                { status: 400 }
-            );
+            return NextResponse.json({ success: false, message: '未提供卡密' });
         }
 
-        // 验证卡密
-        const validationResult = await validateCardKey(username, key);
-        if (!validationResult.success) {
-            return NextResponse.json(
-                { success: false, message: validationResult.error || '卡密无效' },
-                { status: 401 }
-            );
+        const result = await validateCardKey(key);
+        if (!result.success) {
+            return NextResponse.json(result);
         }
 
-        // 获取用户产品列表
-        const productsResult = await getUserProducts(username);
-        if (!productsResult.success) {
-            return NextResponse.json(
-                { success: false, message: '获取产品信息失败' },
-                { status: 500 }
-            );
-        }
+        const [products, config] = await Promise.all([
+            getUserProducts(params.username),
+            getUserConfig(params.username)
+        ]);
 
-        // 返回产品信息和卡密信息
         return NextResponse.json({
             success: true,
-            products: productsResult.data,
-            message: validationResult.message
+            data: {
+                products: products.data,
+                config: config.data
+            }
         });
     } catch (error) {
-        return NextResponse.json(
-            { success: false, message: '获取信息失败' },
-            { status: 500 }
-        );
+        console.error('获取消息失败:', error);
+        return NextResponse.json({ success: false, message: '获取消息失败' });
     }
 } 

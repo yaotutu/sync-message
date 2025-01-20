@@ -1,7 +1,6 @@
-import type { CardKey, Product, User, UserConfig } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+const prismaClient = new PrismaClient();
 
 // 验证管理员密码
 export async function validateAdminPassword(password: string): Promise<boolean> {
@@ -16,15 +15,10 @@ export async function validateAdminPassword(password: string): Promise<boolean> 
 // 验证用户
 export async function validateUser(username: string, password: string): Promise<boolean> {
     try {
-        const user = await prisma.user.findUnique({
+        const user = await prismaClient.user.findUnique({
             where: { username }
         });
-
-        if (!user) {
-            return false;
-        }
-
-        return user.password === password;
+        return user?.password === password;
     } catch (error) {
         console.error('验证用户失败:', error);
         return false;
@@ -32,23 +26,14 @@ export async function validateUser(username: string, password: string): Promise<
 }
 
 // 添加用户
-export async function addUser(username: string, password: string): Promise<{ success: boolean; message: string; data?: User }> {
+export async function addUser(username: string, password: string): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-        const existingUser = await prisma.user.findUnique({
-            where: { username }
-        });
-
-        if (existingUser) {
-            return { success: false, message: '用户名已存在' };
-        }
-
-        const user = await prisma.user.create({
+        const user = await prismaClient.user.create({
             data: {
                 username,
                 password
             }
         });
-
         return { success: true, message: '用户创建成功', data: user };
     } catch (error) {
         console.error('创建用户失败:', error);
@@ -57,12 +42,12 @@ export async function addUser(username: string, password: string): Promise<{ suc
 }
 
 // 获取所有用户
-export async function getAllUsers(): Promise<{ success: boolean; data: User[] }> {
+export async function getAllUsers(): Promise<{ success: boolean; data: any[] }> {
     try {
-        const users = await prisma.user.findMany();
+        const users = await prismaClient.user.findMany();
         return { success: true, data: users };
     } catch (error) {
-        console.error('获取所有用户失败:', error);
+        console.error('获取用户列表失败:', error);
         return { success: false, data: [] };
     }
 }
@@ -70,37 +55,47 @@ export async function getAllUsers(): Promise<{ success: boolean; data: User[] }>
 // 删除用户
 export async function deleteUser(username: string): Promise<{ success: boolean; message: string }> {
     try {
-        await prisma.user.delete({
+        await prismaClient.user.delete({
             where: { username }
         });
         return { success: true, message: '用户删除成功' };
     } catch (error) {
-        console.error('删除用户时发生错误:', error);
-        return { success: false, message: '删除用户失败，请稍后重试' };
+        console.error('删除用户失败:', error);
+        return { success: false, message: '删除用户失败' };
     }
 }
 
 // 添加商品
-export async function addProduct(data: {
+interface ProductData {
     title: string;
     userId: string;
     imageUrl?: string;
     price?: number;
     description?: string;
     notes?: string;
-}): Promise<{ success: boolean; message: string; data?: Product }> {
+}
+
+export async function addProduct(data: ProductData): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-        const product = await prisma.product.create({
-            data: {
-                title: data.title,
-                userId: data.userId,
-                imageUrl: data.imageUrl,
-                price: data.price,
-                description: data.description,
-                notes: data.notes
-            }
+        // 首先检查用户是否存在
+        const user = await prismaClient.user.findUnique({
+            where: { username: data.userId }
         });
 
+        if (!user) {
+            return { success: false, message: '用户不存在' };
+        }
+
+        const product = await prismaClient.product.create({
+            data: {
+                title: data.title,
+                userId: user.id,
+                imageUrl: data.imageUrl || null,
+                price: data.price || null,
+                description: data.description || null,
+                notes: data.notes || null
+            }
+        });
         return { success: true, message: '产品创建成功', data: product };
     } catch (error) {
         console.error('创建产品失败:', error);
@@ -109,39 +104,37 @@ export async function addProduct(data: {
 }
 
 // 获取用户商品
-export async function getUserProducts(userId: string): Promise<{ success: boolean; data: Product[] }> {
+export async function getUserProducts(username: string): Promise<{ success: boolean; data: any[] }> {
     try {
-        const products = await prisma.product.findMany({
-            where: { userId }
+        const user = await prismaClient.user.findUnique({
+            where: { username },
+            include: { products: true }
         });
 
-        return { success: true, data: products };
+        if (!user) {
+            return { success: false, data: [] };
+        }
+
+        return { success: true, data: user.products };
     } catch (error) {
-        console.error('获取用户产品失败:', error);
+        console.error('获取用户产品列表失败:', error);
         return { success: false, data: [] };
     }
 }
 
 // 更新商品
-export async function updateProduct(id: string, data: {
-    title?: string;
-    imageUrl?: string;
-    price?: number;
-    description?: string;
-    notes?: string;
-}): Promise<{ success: boolean; message: string; data?: Product }> {
+export async function updateProduct(id: string, data: Partial<ProductData>): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-        const product = await prisma.product.update({
+        const product = await prismaClient.product.update({
             where: { id },
             data: {
                 title: data.title,
-                imageUrl: data.imageUrl,
-                price: data.price,
-                description: data.description,
-                notes: data.notes
+                imageUrl: data.imageUrl || null,
+                price: data.price || null,
+                description: data.description || null,
+                notes: data.notes || null
             }
         });
-
         return { success: true, message: '产品更新成功', data: product };
     } catch (error) {
         console.error('更新产品失败:', error);
@@ -152,10 +145,9 @@ export async function updateProduct(id: string, data: {
 // 删除商品
 export async function deleteProduct(id: string): Promise<{ success: boolean; message: string }> {
     try {
-        await prisma.product.delete({
+        await prismaClient.product.delete({
             where: { id }
         });
-
         return { success: true, message: '产品删除成功' };
     } catch (error) {
         console.error('删除产品失败:', error);
@@ -164,17 +156,23 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; mes
 }
 
 // 获取用户配置
-export async function getUserConfig(userId: string): Promise<{ success: boolean; data?: UserConfig }> {
+interface UserConfigData {
+    theme?: string;
+    language?: string;
+}
+
+export async function getUserConfig(username: string): Promise<{ success: boolean; data?: any }> {
     try {
-        const config = await prisma.userConfig.findUnique({
-            where: { userId }
+        const user = await prismaClient.user.findUnique({
+            where: { username },
+            include: { config: true }
         });
 
-        if (!config) {
+        if (!user) {
             return { success: false };
         }
 
-        return { success: true, data: config };
+        return { success: true, data: user.config };
     } catch (error) {
         console.error('获取用户配置失败:', error);
         return { success: false };
@@ -182,21 +180,30 @@ export async function getUserConfig(userId: string): Promise<{ success: boolean;
 }
 
 // 更新用户配置
-export async function updateUserConfig(userId: string, data: {
-    theme?: string;
-    language?: string;
-}): Promise<{ success: boolean; message: string; data?: UserConfig }> {
+export async function updateUserConfig(username: string, data: UserConfigData): Promise<{ success: boolean; message: string }> {
     try {
-        const config = await prisma.userConfig.upsert({
-            where: { userId },
-            update: data,
+        const user = await prismaClient.user.findUnique({
+            where: { username }
+        });
+
+        if (!user) {
+            return { success: false, message: '用户不存在' };
+        }
+
+        await prismaClient.userConfig.upsert({
+            where: { userId: user.id },
+            update: {
+                theme: data.theme || null,
+                language: data.language || null
+            },
             create: {
-                userId,
-                ...data
+                userId: user.id,
+                theme: data.theme || null,
+                language: data.language || null
             }
         });
 
-        return { success: true, message: '配置更新成功', data: config };
+        return { success: true, message: '用户配置更新成功' };
     } catch (error) {
         console.error('更新用户配置失败:', error);
         return { success: false, message: '更新用户配置失败' };
@@ -204,27 +211,40 @@ export async function updateUserConfig(userId: string, data: {
 }
 
 // 获取用户卡密
-export async function getUserCardKeys(userId: string): Promise<{ success: boolean; data: CardKey[] }> {
+export async function getUserCardKeys(username: string): Promise<{ success: boolean; data: any[] }> {
     try {
-        const cardKeys = await prisma.cardKey.findMany({
-            where: { userId }
+        const user = await prismaClient.user.findUnique({
+            where: { username },
+            include: { cardKeys: true }
         });
 
-        return { success: true, data: cardKeys };
+        if (!user) {
+            return { success: false, data: [] };
+        }
+
+        return { success: true, data: user.cardKeys };
     } catch (error) {
-        console.error('获取用户卡密失败:', error);
+        console.error('获取用户卡密列表失败:', error);
         return { success: false, data: [] };
     }
 }
 
 // 添加卡密
-export async function addCardKey(userId: string): Promise<{ success: boolean; message: string; data?: CardKey }> {
+export async function addCardKey(username: string): Promise<{ success: boolean; message: string; data?: any }> {
     try {
-        const key = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        const cardKey = await prisma.cardKey.create({
+        const user = await prismaClient.user.findUnique({
+            where: { username }
+        });
+
+        if (!user) {
+            return { success: false, message: '用户不存在' };
+        }
+
+        const cardKey = await prismaClient.cardKey.create({
             data: {
-                key,
-                userId
+                userId: user.id,
+                key: Math.random().toString(36).substring(2, 15),
+                status: 'UNUSED'
             }
         });
 
@@ -238,10 +258,9 @@ export async function addCardKey(userId: string): Promise<{ success: boolean; me
 // 删除卡密
 export async function deleteCardKey(id: string): Promise<{ success: boolean; message: string }> {
     try {
-        await prisma.cardKey.delete({
+        await prismaClient.cardKey.delete({
             where: { id }
         });
-
         return { success: true, message: '卡密删除成功' };
     } catch (error) {
         console.error('删除卡密失败:', error);
@@ -250,34 +269,24 @@ export async function deleteCardKey(id: string): Promise<{ success: boolean; mes
 }
 
 // 验证卡密
-export async function validateCardKey(key: string): Promise<{ success: boolean; message: string; data?: CardKey }> {
+export async function validateCardKey(key: string): Promise<boolean> {
     try {
-        const cardKey = await prisma.cardKey.findUnique({
-            where: { key }
+        const cardKey = await prismaClient.cardKey.findFirst({
+            where: { key, status: 'UNUSED' }
         });
 
         if (!cardKey) {
-            return { success: false, message: '卡密不存在' };
+            return false;
         }
 
-        if (cardKey.status !== 'unused') {
-            return { success: false, message: '卡密已使用或已过期' };
-        }
-
-        const updatedCardKey = await prisma.cardKey.update({
-            where: { key },
-            data: {
-                status: 'used',
-                usedAt: new Date()
-            }
+        await prismaClient.cardKey.update({
+            where: { id: cardKey.id },
+            data: { status: 'USED' }
         });
 
-        return { success: true, message: '卡密验证成功', data: updatedCardKey };
+        return true;
     } catch (error) {
         console.error('验证卡密失败:', error);
-        return { success: false, message: '验证卡密失败' };
+        return false;
     }
-} 
-} 
-} 
 } 

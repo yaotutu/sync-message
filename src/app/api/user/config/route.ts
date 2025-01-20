@@ -3,26 +3,18 @@ import { writeFile } from 'fs/promises';
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
     try {
-        const username = request.headers.get('x-username');
-        const password = request.headers.get('x-password');
-
-        if (!username || !password) {
-            return NextResponse.json({ success: false, message: '未登录' }, { status: 401 });
+        const username = req.headers.get('x-username');
+        if (!username) {
+            return NextResponse.json({ success: false, message: '未提供用户名' });
         }
 
-        const validateResult = await validateUser(username, password);
-        if (!validateResult.success) {
-            return NextResponse.json({ success: false, message: '用户名或密码错误' }, { status: 401 });
-        }
-
-        const configResult = await getUserConfig(username, 'products');
-        const products = configResult.data ? configResult.data : [];
-        return NextResponse.json({ success: true, data: products });
+        const result = await getUserConfig(username);
+        return NextResponse.json(result);
     } catch (error) {
         console.error('获取用户配置失败:', error);
-        return NextResponse.json({ success: false, message: '服务器错误' }, { status: 500 });
+        return NextResponse.json({ success: false, message: '获取用户配置失败' });
     }
 }
 
@@ -105,5 +97,21 @@ async function createDirIfNotExists(dir: string) {
             return;
         }
         throw error;
+    }
+}
+
+export async function PUT(req: NextRequest) {
+    try {
+        const username = req.headers.get('x-username');
+        if (!username) {
+            return NextResponse.json({ success: false, message: '未提供用户名' });
+        }
+
+        const data = await req.json();
+        const result = await updateUserConfig(username, data);
+        return NextResponse.json(result);
+    } catch (error) {
+        console.error('更新用户配置失败:', error);
+        return NextResponse.json({ success: false, message: '更新用户配置失败' });
     }
 } 

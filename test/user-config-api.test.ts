@@ -1,30 +1,36 @@
-import { addUser, getUserConfig, updateUserConfig } from '../src/lib/server/db';
+import { addUser, deleteUser, getUserConfig, updateUserConfig } from '../src/lib/server/db';
 import { prisma } from '../src/lib/server/prisma';
+
+interface TestResult {
+    success: boolean;
+    message?: string;
+    data?: any;
+}
 
 async function testUserConfigAPIs() {
     try {
-        // 首先创建测试用户
-        console.log('1. 创建测试用户');
-        let result = await addUser('testuser', 'password123');
-        console.log(result);
+        console.log('开始测试用户配置 API...');
 
-        // 测试获取用户配置（应该为空）
-        console.log('\n2. 测试获取用户配置（初始）');
-        const configResult = await getUserConfig('testuser');
-        console.log(configResult);
+        // 创建测试用户
+        const addResult = await addUser('testuser', 'testpass');
+        console.log('添加用户结果:', addResult);
 
-        // 测试更新用户配置
-        console.log('\n3. 测试更新用户配置');
-        result = await updateUserConfig('testuser', {
-            pageTitle: '测试标题',
-            pageDescription: '测试描述'
+        // 更新用户配置
+        const updateResult = await updateUserConfig('testuser', {
+            theme: 'dark',
+            language: 'zh-CN'
         });
-        console.log(result);
+        console.log('更新配置结果:', updateResult);
 
-        // 测试获取更新后的用户配置
-        console.log('\n4. 测试获取更新后的用户配置');
-        const updatedConfig = await getUserConfig('testuser');
-        console.log(updatedConfig);
+        // 获取用户配置
+        const getResult = await getUserConfig('testuser');
+        console.log('获取配置结果:', getResult);
+
+        // 删除测试用户
+        const deleteResult = await deleteUser('testuser');
+        console.log('删除用户结果:', deleteResult);
+
+        console.log('用户配置 API 测试完成');
 
         // 清理测试用户
         await prisma.user.delete({ where: { username: 'testuser' } });
