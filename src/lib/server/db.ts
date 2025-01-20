@@ -243,6 +243,11 @@ export async function getUserCardKeys(username: string): Promise<{ success: bool
     }
 }
 
+// 生成卡密
+function generateCardKey(): string {
+    return Math.random().toString(36).substring(2, 15);
+}
+
 // 添加卡密
 export async function addCardKey(username: string): Promise<{ success: boolean; message: string; data?: any }> {
     try {
@@ -256,13 +261,17 @@ export async function addCardKey(username: string): Promise<{ success: boolean; 
 
         const cardKey = await prismaClient.cardKey.create({
             data: {
+                key: generateCardKey(),
                 userId: user.id,
-                key: Math.random().toString(36).substring(2, 15),
-                status: 'UNUSED'
+                used: false
             }
         });
 
-        return { success: true, message: '卡密创建成功', data: cardKey };
+        return {
+            success: true,
+            message: '卡密创建成功',
+            data: cardKey
+        };
     } catch (error) {
         console.error('创建卡密失败:', error);
         return { success: false, message: '创建卡密失败' };
@@ -293,18 +302,18 @@ export async function validateCardKey(key: string): Promise<{ success: boolean; 
             return { success: false, message: '卡密不存在' };
         }
 
-        if (cardKey.status === 'USED') {
+        if (cardKey.used) {
             return { success: false, message: '卡密已使用' };
         }
 
         await prismaClient.cardKey.update({
-            where: { key },
-            data: { status: 'USED' }
+            where: { id: cardKey.id },
+            data: { used: true }
         });
 
-        return { success: true, message: '验证成功' };
+        return { success: true, message: '卡密验证成功' };
     } catch (error) {
         console.error('验证卡密失败:', error);
-        return { success: false, message: '验证失败' };
+        return { success: false, message: '验证卡密失败' };
     }
 } 
