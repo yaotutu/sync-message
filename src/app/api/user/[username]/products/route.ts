@@ -2,9 +2,13 @@ import { addProduct, deleteProduct, getUserProducts, updateProduct } from '@/lib
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET 获取用户产品列表
-export async function GET(req: NextRequest, { params }: { params: { username: string } }) {
+export async function GET(
+    req: NextRequest,
+    context: { params: { username: string } }
+) {
     try {
-        const result = await getUserProducts(params.username);
+        const { username } = await context.params;
+        const result = await getUserProducts(username);
         return NextResponse.json(result);
     } catch (error) {
         console.error('获取用户产品失败:', error);
@@ -13,12 +17,16 @@ export async function GET(req: NextRequest, { params }: { params: { username: st
 }
 
 // POST 添加产品
-export async function POST(req: NextRequest, { params }: { params: { username: string } }) {
+export async function POST(
+    req: NextRequest,
+    context: { params: { username: string } }
+) {
     try {
+        const { username } = await context.params;
         const data = await req.json();
         const result = await addProduct({
             ...data,
-            userId: params.username
+            userId: username
         });
         return NextResponse.json(result);
     } catch (error) {
@@ -28,8 +36,12 @@ export async function POST(req: NextRequest, { params }: { params: { username: s
 }
 
 // PUT 更新产品
-export async function PUT(req: NextRequest, { params }: { params: { username: string } }) {
+export async function PUT(
+    req: NextRequest,
+    context: { params: { username: string } }
+) {
     try {
+        const { username } = await context.params;
         const { id, ...data } = await req.json();
         const result = await updateProduct(id, data);
         return NextResponse.json(result);
@@ -40,8 +52,12 @@ export async function PUT(req: NextRequest, { params }: { params: { username: st
 }
 
 // DELETE 删除产品
-export async function DELETE(req: NextRequest, { params }: { params: { username: string } }) {
+export async function DELETE(
+    req: NextRequest,
+    context: { params: { username: string } }
+) {
     try {
+        const { username } = await context.params;
         const { id } = await req.json();
         const result = await deleteProduct(id);
         return NextResponse.json(result);

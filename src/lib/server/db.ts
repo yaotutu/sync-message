@@ -94,7 +94,7 @@ export async function addProduct(data: ProductData): Promise<{ success: boolean;
         const product = await prismaClient.product.create({
             data: {
                 title: data.title,
-                userId: user.id,
+                userId: data.userId,
                 imageUrl: data.imageUrl || null,
                 price: data.price || null,
                 description: data.description || null,
