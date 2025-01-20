@@ -1,14 +1,48 @@
-import { addCardKey, deleteCardKey, getUserCardKeys } from '@/lib/server/db';
+import { addCardKey, deleteCardKey, getUserCardKeys, validateUser } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-// 获取卡密列表
-export async function GET(req: NextRequest, { params }: { params: { username: string } }) {
+// GET 获取用户卡密列表
+export async function GET(
+    req: NextRequest,
+    context: { params: { username: string } }
+) {
     try {
-        const result = await getUserCardKeys(params.username);
-        return NextResponse.json(result);
+        const { username } = await context.params;
+        const authUsername = req.headers.get('x-username');
+        const authPassword = req.headers.get('x-password');
+
+        if (!authUsername || !authPassword) {
+            return NextResponse.json({ success: false, message: '未提供认证信息' });
+        }
+
+        // 验证用户
+        const validationResult = await validateUser(authUsername, authPassword);
+        if (!validationResult.success) {
+            return NextResponse.json({ success: false, message: '无效的用户名或密码' });
+        }
+
+        // 获取卡密列表
+        const result = await getUserCardKeys(username);
+
+        // 计算剩余时间
+        const now = new Date();
+        const cardKeys = result.data.map(key => {
+            if (key.used && key.usedAt) {
+                const expireTime = new Date(key.usedAt.getTime() + 3 * 60 * 1000); // 3分钟后过期
+                if (now < expireTime) {
+                    return {
+                        ...key,
+                        expiresIn: expireTime.getTime() - now.getTime()
+                    };
+                }
+            }
+            return key;
+        });
+
+        return NextResponse.json({ success: true, data: cardKeys });
     } catch (error) {
-        console.error('获取用户卡密失败:', error);
-        return NextResponse.json({ success: false, message: '获取用户卡密失败' });
+        console.error('获取用户卡密列表失败:', error);
+        return NextResponse.json({ success: false, message: '获取用户卡密列表失败' });
     }
 }
 

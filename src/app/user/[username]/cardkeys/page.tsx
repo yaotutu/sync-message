@@ -1,18 +1,16 @@
 'use client';
 
 import config from '@/config';
+import { CardKey, CardKeyStatus } from '@/types/cardKey';
 import { useParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-interface CardKey {
-    id: number;
-    key: string;
-    usedAt: number | null;
-    createdAt: number;
-    expiresIn?: number;
-}
-
-type CardKeyStatus = 'all' | 'unused' | 'used';
+type StatusTabProps = {
+    currentStatus: CardKeyStatus;
+    setCurrentStatus: (status: CardKeyStatus) => void;
+    cardKeys: CardKey[];
+    setCurrentPage: (page: number) => void;
+};
 
 export default function CardKeysPage() {
     const params = useParams();
@@ -65,7 +63,24 @@ export default function CardKeysPage() {
     useEffect(() => {
         setIsMounted(true);
         fetchCardKeys();
-        return () => setIsMounted(false);
+
+        // 每秒更新一次剩余时间
+        const timer = setInterval(() => {
+            setCardKeys(prevKeys => prevKeys.map(key => {
+                if (key.used && key.usedAt && key.expiresIn && key.expiresIn > 0) {
+                    return {
+                        ...key,
+                        expiresIn: Math.max(0, key.expiresIn - 1000)
+                    };
+                }
+                return key;
+            }));
+        }, 1000);
+
+        return () => {
+            setIsMounted(false);
+            clearInterval(timer);
+        };
     }, []);
 
     // 获取未使用的卡密数量

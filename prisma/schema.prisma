@@ -54,12 +54,13 @@ model UserConfig {
 }
 
 model CardKey {
-  id        String   @id @default(cuid())
-  key       String   @unique
+  id        String    @id @default(cuid())
+  key       String    @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  used      Boolean  @default(false)
+  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  used      Boolean   @default(false)
+  usedAt    DateTime?
   @@map("card_keys")
 }
