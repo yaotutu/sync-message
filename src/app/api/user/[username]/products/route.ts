@@ -23,14 +23,17 @@ export async function POST(
 ) {
     try {
         const { username } = await context.params;
-        console.log('收到的用户名:', username);
-
         const data = await req.json();
-        console.log('收到的请求数据:', data);
 
         // 验证必需字段
+        if (!data || typeof data !== 'object') {
+            return NextResponse.json({
+                success: false,
+                message: '无效的请求数据'
+            });
+        }
+
         if (!data.title || !data.link) {
-            console.log('缺少必需字段:', { title: data.title, link: data.link });
             return NextResponse.json({
                 success: false,
                 message: '商品标题和链接是必需的'
@@ -39,27 +42,22 @@ export async function POST(
 
         // 构造产品数据
         const productData = {
-            title: data.title,
-            link: data.link,
+            title: data.title.trim(),
+            link: data.link.trim(),
             userId: username,
-            imageUrl: data.imageUrl || undefined,
+            imageUrl: data.imageUrl?.trim(),
             price: typeof data.price === 'number' ? data.price : undefined,
-            description: data.description || undefined,
-            notes: data.notes || undefined
+            description: data.description?.trim(),
+            notes: data.notes?.trim()
         };
 
-        console.log('构造的产品数据:', productData);
-
         const result = await addProduct(productData);
-        console.log('添加产品结果:', result);
-
         return NextResponse.json(result);
     } catch (error) {
-        console.error('添加产品失败:', error);
-        console.error('错误堆栈:', error instanceof Error ? error.stack : '无堆栈信息');
+        const errorMessage = error instanceof Error ? error.message : '添加产品失败';
         return NextResponse.json({
             success: false,
-            message: error instanceof Error ? error.message : '添加产品失败'
+            message: errorMessage
         });
     }
 }

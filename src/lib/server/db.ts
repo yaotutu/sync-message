@@ -127,12 +127,9 @@ export async function addProduct(data: ProductData): Promise<{ success: boolean;
 
         return { success: true, message: '产品创建成功', data: product };
     } catch (error) {
-        console.error('创建产品失败:', error);
-        console.error('错误堆栈:', error instanceof Error ? error.stack : '无堆栈信息');
-        return {
-            success: false,
-            message: error instanceof Error ? error.message : '创建产品失败'
-        };
+        // 简化错误处理，避免使用 console.error
+        const errorMessage = error instanceof Error ? error.message : '创建产品失败';
+        return { success: false, message: errorMessage };
     }
 }
 
