@@ -75,6 +75,7 @@ interface ProductData {
     title: string;
     userId: string;
     imageUrl?: string;
+    link: string;
     price?: number;
     description?: string;
     notes?: string;
@@ -82,29 +83,56 @@ interface ProductData {
 
 export async function addProduct(data: ProductData): Promise<{ success: boolean; message: string; data?: any }> {
     try {
+        console.log('addProduct 接收到的数据:', data);
+
+        if (!data || typeof data !== 'object') {
+            console.log('无效的产品数据:', data);
+            return { success: false, message: '无效的产品数据' };
+        }
+
+        if (!data.title || !data.link || !data.userId) {
+            console.log('缺少必需字段:', { title: data.title, link: data.link, userId: data.userId });
+            return { success: false, message: '缺少必需的产品信息' };
+        }
+
         // 首先检查用户是否存在
         const user = await prismaClient.user.findUnique({
             where: { username: data.userId }
         });
 
+        console.log('查找到的用户:', user);
+
         if (!user) {
             return { success: false, message: '用户不存在' };
         }
 
+        // 构造产品数据，过滤掉 undefined 值
+        const productData = {
+            title: data.title,
+            userId: data.userId,
+            link: data.link,
+            ...(data.imageUrl && { imageUrl: data.imageUrl }),
+            ...(typeof data.price === 'number' && { price: data.price }),
+            ...(data.description && { description: data.description }),
+            ...(data.notes && { notes: data.notes })
+        };
+
+        console.log('构造的产品数据:', productData);
+
         const product = await prismaClient.product.create({
-            data: {
-                title: data.title,
-                userId: data.userId,
-                imageUrl: data.imageUrl || null,
-                price: data.price || null,
-                description: data.description || null,
-                notes: data.notes || null
-            }
+            data: productData
         });
+
+        console.log('创建的产品:', product);
+
         return { success: true, message: '产品创建成功', data: product };
     } catch (error) {
         console.error('创建产品失败:', error);
-        return { success: false, message: '创建产品失败' };
+        console.error('错误堆栈:', error instanceof Error ? error.stack : '无堆栈信息');
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : '创建产品失败'
+        };
     }
 }
 
@@ -130,20 +158,24 @@ export async function getUserProducts(username: string): Promise<{ success: bool
 // 更新商品
 export async function updateProduct(id: string, data: Partial<ProductData>): Promise<{ success: boolean; message: string; data?: any }> {
     try {
+        // 构造更新数据，过滤掉 undefined 值
+        const updateData = {
+            ...(data.title && { title: data.title }),
+            ...(data.link && { link: data.link }),
+            ...(data.imageUrl && { imageUrl: data.imageUrl }),
+            ...(data.price && { price: data.price }),
+            ...(data.description && { description: data.description }),
+            ...(data.notes && { notes: data.notes })
+        };
+
         const product = await prismaClient.product.update({
             where: { id },
-            data: {
-                title: data.title,
-                imageUrl: data.imageUrl || null,
-                price: data.price || null,
-                description: data.description || null,
-                notes: data.notes || null
-            }
+            data: updateData
         });
         return { success: true, message: '产品更新成功', data: product };
     } catch (error) {
         console.error('更新产品失败:', error);
-        return { success: false, message: '更新产品失败' };
+        return { success: false, message: error instanceof Error ? error.message : '更新产品失败' };
     }
 }
 

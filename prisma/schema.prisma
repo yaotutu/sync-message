@@ -30,6 +30,7 @@ model Product {
   id          String    @id @default(cuid())
   title       String
   imageUrl    String?
+  link        String
   price       Float?
   description String?
   notes       String?

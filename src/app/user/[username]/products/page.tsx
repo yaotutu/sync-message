@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 interface Product {
-    id?: number;
+    id?: string;
     title: string;
     imageUrl?: string;
     link: string;
@@ -79,9 +79,26 @@ export default function ProductsPage() {
         setIsLoading(true);
 
         try {
+            // 验证必需字段
+            if (!formData.title || !formData.link) {
+                setError('商品标题和链接是必需的');
+                return;
+            }
+
+            // 构造请求数据
+            const requestData = {
+                ...formData,
+                price: formData.price ? Number(formData.price) : undefined,
+                imageUrl: formData.imageUrl || undefined,
+                description: formData.description || undefined,
+                notes: formData.notes || undefined
+            };
+
+            console.log('发送的数据:', requestData);
+
             const url = `/api/user/${username}/products`;
             const method = editingProduct ? 'PUT' : 'POST';
-            const body = editingProduct ? { ...formData, id: editingProduct.id } : formData;
+            const body = editingProduct ? { ...requestData, id: editingProduct.id } : requestData;
 
             const response = await fetch(url, {
                 method,
@@ -94,6 +111,7 @@ export default function ProductsPage() {
             });
 
             const data = await response.json();
+            console.log('收到的响应:', data);
 
             if (data.success) {
                 setSuccess(data.message);
@@ -112,6 +130,7 @@ export default function ProductsPage() {
                 setError(data.message);
             }
         } catch (err) {
+            console.error('提交表单时出错:', err);
             setError('保存商品失败，请稍后重试');
         } finally {
             setIsLoading(false);
@@ -121,25 +140,34 @@ export default function ProductsPage() {
     // 编辑商品
     const handleEdit = (product: Product) => {
         setEditingProduct(product);
-        setFormData(product);
+        setFormData({
+            title: product.title,
+            imageUrl: product.imageUrl || '',
+            link: product.link,
+            price: product.price || 0,
+            description: product.description || '',
+            notes: product.notes || ''
+        });
         setShowForm(true);
         setError('');
         setSuccess('');
     };
 
     // 删除商品
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm('确定要删除这个商品吗？')) {
             return;
         }
 
         try {
-            const response = await fetch(`/api/user/${username}/products?id=${id}`, {
+            const response = await fetch(`/api/user/${username}/products`, {
                 method: 'DELETE',
                 headers: {
+                    'Content-Type': 'application/json',
                     'x-username': username,
                     'x-password': localStorage.getItem('password') || ''
-                }
+                },
+                body: JSON.stringify({ id })
             });
 
             const data = await response.json();
@@ -409,6 +437,15 @@ export default function ProductsPage() {
                                 )}
                             </div>
                             <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <a
+                                    href={product.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="px-3 py-1 text-sm text-green-600 dark:text-green-400 
+                                             hover:text-green-800 dark:hover:text-green-300"
+                                >
+                                    查看
+                                </a>
                                 <button
                                     onClick={() => handleEdit(product)}
                                     className="px-3 py-1 text-sm text-blue-600 dark:text-blue-400 
