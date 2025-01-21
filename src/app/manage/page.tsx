@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { User } from '@/types/manage';
+import React, { useState } from 'react';
 
 export default function ManagePage() {
     const [password, setPassword] = useState('');

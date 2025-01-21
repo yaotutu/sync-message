@@ -5,8 +5,12 @@ export const config = {
     },
     // 卡密相关配置
     cardKey: {
-        validityPeriod: 5 * 60 * 1000,  // 卡密有效期（3分钟）
-        maxUnusedKeys: 50,  // 最大未使用卡密数量
+        maxUnusedKeys: 100, // 最大未使用卡密数量
+        expiresIn: 24 * 60 * 60 * 1000, // 卡密有效期（毫秒）
+    },
+    upload: {
+        maxSize: 5 * 1024 * 1024, // 最大上传文件大小（字节）
+        allowedTypes: ['image/jpeg', 'image/png', 'image/gif'], // 允许的文件类型
     },
     // 其他配置项可以在这里添加...
 } as const;
