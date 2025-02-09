@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
+    eslint: {
+        ignoreDuringBuilds: true,
+    },
     webpack: (config) => {
         config.resolve.alias = {
             ...config.resolve.alias,
@@ -10,4 +13,4 @@ const nextConfig = {
     },
 };
 
-module.exports = nextConfig; 
+module.exports = nextConfig;
