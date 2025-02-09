@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import MobileNav from '@/components/MobileNav';
 
 export default function UserLayout({
     children
@@ -13,6 +14,7 @@ export default function UserLayout({
     const params = useParams();
     const username = params?.username as string;
     const [isLoading, setIsLoading] = useState(true);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         if (!username) {
@@ -73,7 +75,7 @@ export default function UserLayout({
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             {/* 顶部导航栏 */}
             <nav className="bg-white dark:bg-gray-800 shadow fixed top-0 left-0 right-0 z-10">
-                <div className="px-4">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
                         <div className="flex items-center">
                             <Link
@@ -83,7 +85,8 @@ export default function UserLayout({
                                 {username} 的空间
                             </Link>
                         </div>
-                        <div className="flex items-center space-x-4">
+                        {/* 桌面端导航 */}
+                        <div className="hidden md:flex items-center space-x-4">
                             <Link
                                 href={`/user/${username}/profile`}
                                 className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white px-3 py-2 rounded-md text-sm font-medium"
@@ -109,14 +112,47 @@ export default function UserLayout({
                                 退出登录
                             </button>
                         </div>
+
+                        {/* 移动端菜单按钮 */}
+                        <div className="flex md:hidden">
+                            <button
+                                onClick={() => setIsMobileMenuOpen(true)}
+                                className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none"
+                                aria-label="打开菜单"
+                            >
+                                <svg
+                                    className="h-6 w-6"
+                                    stroke="currentColor"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M4 6h16M4 12h16M4 18h16"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </nav>
 
+            {/* 移动导航菜单 */}
+            <MobileNav
+                username={username}
+                isOpen={isMobileMenuOpen}
+                onClose={() => setIsMobileMenuOpen(false)}
+                onLogout={handleLogout}
+            />
+
             {/* 主内容区 */}
-            <main className="w-full pt-16 min-h-screen">
-                <div className="px-4 py-6">
-                    {children}
+            <main className="pt-16 min-h-screen">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+                    <div className="w-full">
+                        {children}
+                    </div>
                 </div>
             </main>
         </div>
