@@ -4,11 +4,11 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 interface Product {
-    id: number;
+    id: string;
     title: string;
     imageUrl?: string;
     link?: string;
-    price?: string;
+    price?: number;
     description?: string;
     notes?: string;
 }
@@ -46,21 +46,16 @@ export default function MessagePage() {
             setLoading(true);
             setError('');
 
-            // 获取用户配置
-            const configResponse = await fetch(`/api/user/${username}/config`);
-            const configData = await configResponse.json();
-            if (configData.success) {
-                setUserConfig(configData.data);
-            }
-
             // 获取消息和产品信息
-            const response = await fetch(`/api/user/${username}/message?key=${key}`);
+            const response = await fetch(`/api/user/${username}/message?key=${encodeURIComponent(key)}`);
             const data = await response.json();
 
-            if (data.success) {
-                // 验证成功后跳转到消息列表页面
-                router.push(`/messages?key=${key}`);
-                return;
+            if (data.success && data.data) {
+                setProducts(data.data.products || []);
+                if (data.data.config) {
+                    setUserConfig(data.data.config);
+                }
+                setError('');
             } else {
                 setError(data.message || '加载失败');
                 setProducts([]);
@@ -93,7 +88,7 @@ export default function MessagePage() {
 
         setIsSubmitting(true);
         // 更新 URL，但不重新加载页面
-        router.push(`/user/${username}/message?key=${cardKey}`, { scroll: false });
+        router.push(`/user/${username}/message?key=${encodeURIComponent(cardKey)}`, { scroll: false });
         await loadData(cardKey);
     };
 
@@ -173,9 +168,9 @@ export default function MessagePage() {
                                             {product.notes}
                                         </p>
                                     )}
-                                    {product.price && (
-                                        <p className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
-                                            {product.price}
+                                    {product.price !== undefined && (
+                                        <p className="mt-2 text-lg font-semibold text-red-600 dark:text-red-400">
+                                            ¥{product.price.toFixed(2)}
                                         </p>
                                     )}
                                     {product.link && (
@@ -200,4 +195,4 @@ export default function MessagePage() {
             </div>
         </div>
     );
-} 
+}

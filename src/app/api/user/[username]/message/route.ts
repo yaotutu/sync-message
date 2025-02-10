@@ -1,8 +1,11 @@
 import { getUserConfig, getUserProducts, validateCardKey } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest, { params }: { params: { username: string } }) {
+export async function GET(req: NextRequest, context: { params: { username: string } }) {
     try {
+        // 获取并等待动态路由参数
+        const { username } = await context.params;
+
         // 从查询参数获取卡密
         const key = req.nextUrl.searchParams.get('key');
         if (!key) {
@@ -21,8 +24,8 @@ export async function GET(req: NextRequest, { params }: { params: { username: st
 
         // 获取用户数据
         const [products, config] = await Promise.all([
-            getUserProducts(params.username),
-            getUserConfig(params.username)
+            getUserProducts(username),
+            getUserConfig(username)
         ]);
 
         // 如果获取数据失败
