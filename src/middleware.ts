@@ -6,13 +6,22 @@ const publicPaths = [
     '/api/user/login',
     '/api/user/verify',
     '/api/webhook',  // webhook endpoints
+    '/api/user/*/message',  // 通过卡密访问消息的路由
+    '/api/user/*/config',   // 用户配置（消息访问需要）
 ];
 
 export function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
 
     // 检查是否是公开路由
-    if (publicPaths.some(path => pathname.startsWith(path))) {
+    if (publicPaths.some(path => {
+        if (path.includes('*')) {
+            // 处理带通配符的路径
+            const regex = new RegExp('^' + path.replace('*', '[^/]+') + '$');
+            return regex.test(pathname);
+        }
+        return pathname.startsWith(path);
+    })) {
         return NextResponse.next();
     }
 

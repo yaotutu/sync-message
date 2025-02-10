@@ -1,5 +1,59 @@
 # 开发日志
 
+## 2025-02-10 22:06 添加消息系统支持
+
+### 数据库变更
+1. 添加Message模型
+   - 添加messages表
+   - 设置用户关联关系
+   - 配置时间戳字段
+
+### Schema更新
+```prisma
+model Message {
+  id        String    @id @default(cuid())
+  content   String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("messages")
+}
+```
+
+### 功能实现
+1. 数据访问
+   - 通过卡密获取消息
+   - 处理过期逻辑
+   - 添加错误处理
+
+2. API接口
+   - GET /api/messages
+   - 卡密验证
+   - 消息列表获取
+
+### 测试要点
+1. 数据验证
+   - 消息关联关系
+   - 时间戳处理
+   - 查询性能
+
+2. 功能测试
+   - 卡密验证
+   - 消息获取
+   - 错误处理
+
+### Git提交
+```bash
+git add .
+git commit -m "feat: 添加消息系统支持
+
+- 添加Message模型和关联关系
+- 实现消息获取API
+- 集成卡密验证机制"
+```
+
 ## 2025-02-10 21:36 卡密页面深色模式优化
 
 ### 变更内容
@@ -205,120 +259,3 @@ describe('卡密API认证', () => {
     // 验证错误恢复
   });
 });
-```
-
-## 2025-02-10 20:30 认证系统改进
-
-### 变更内容
-
-1. 添加认证状态管理
-- 实现 `useAuth` hook用于统一管理认证状态
-- 添加AuthProvider组件提供全局认证上下文
-- 实现认证状态自动验证机制
-
-2. API端点改进
-- 添加 `/api/user/verify` 端点用于验证认证状态
-- 实现API中间件统一保护路由
-- 优化认证错误处理
-
-3. 组件更新
-- 重构登录页面，使用新的认证机制
-- 优化卡密管理页面的认证处理
-- 添加自动重试机制
-
-### 修改的文件
-1. src/lib/hooks/useAuth.ts (新增)
-2. src/components/AuthProvider.tsx (新增)
-3. src/app/api/user/verify/route.ts (新增)
-4. src/middleware.ts (新增)
-5. src/app/layout.tsx (更新)
-6. src/app/login/page.tsx (更新)
-7. src/app/user/[username]/cardkeys/page.tsx (更新)
-
-### 测试用例
-
-1. 认证状态管理
-```typescript
-describe('认证状态管理', () => {
-  it('应正确处理登录成功', async () => {
-    // 验证登录后状态更新
-    // 验证本地存储
-    // 验证重定向
-  });
-
-  it('应正确处理认证失败', async () => {
-    // 验证错误提示
-    // 验证状态重置
-  });
-});
-```
-
-2. API 认证
-```typescript
-describe('API认证', () => {
-  it('应正确验证认证信息', async () => {
-    // 验证header检查
-    // 验证认证响应
-  });
-
-  it('应正确处理认证失败', async () => {
-    // 验证错误响应
-    // 验证状态码
-  });
-});
-```
-
-3. 组件行为
-```typescript
-describe('页面组件', () => {
-  it('应正确处理未认证状态', () => {
-    // 验证重定向
-    // 验证加载状态
-  });
-
-  it('应正确处理认证过期', () => {
-    // 验证自动重试
-    // 验证错误提示
-  });
-});
-```
-
-### 性能影响
-
-1. 初始加载
-- 添加约5KB的JavaScript代码
-- 认证状态验证增加约100ms延迟
-
-2. 运行时
-- 定期认证状态检查（每60秒）
-- 本地存储读写操作
-
-### 后续优化计划
-
-1. 性能优化
-- 实现认证状态缓存
-- 优化重试策略
-- 减少不必要的状态更新
-
-2. 安全性增强
-- 实现密码加密存储
-- 添加请求签名验证
-- 实现认证令牌轮换
-
-3. 用户体验
-- 添加记住登录功能
-- 优化错误提示
-- 添加登录状态过期提醒
-
-### Git 提交信息
-
-```bash
-git add .
-git commit -m "feat(auth): 重构认证系统
-
-- 添加统一认证状态管理
-- 实现API路由保护
-- 优化认证错误处理
-- 添加自动重试机制
-
-Related: #123"

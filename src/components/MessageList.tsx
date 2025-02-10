@@ -1,76 +1,78 @@
 'use client';
 
-import { Message } from '@/types/message';
+interface Product {
+    id: string;
+    title: string;
+    imageUrl?: string;
+    link: string;
+    price?: number;
+    description?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
 
 interface MessageListProps {
-    messages: Message[];
+    messages: Product[];
 }
 
 export default function MessageList({ messages }: MessageListProps) {
     return (
-        <div className="space-y-4">
-            {messages.map((message) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {messages.map((product) => (
                 <div
-                    key={message.id}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4"
+                    key={product.id}
+                    className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden"
                 >
-                    <div className="flex justify-between items-start mb-2">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {new Date(message.createdAt).toLocaleString()}
-                        </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {message.sender}
-                        </span>
-                    </div>
-                    {message.type === 'text' && (
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                            {message.content}
-                        </p>
-                    )}
-                    {message.type === 'image' && message.metadata?.url && (
-                        <img
-                            src={message.metadata.url}
-                            alt={message.content}
-                            className="max-w-full h-auto rounded-lg"
-                        />
-                    )}
-                    {message.type === 'file' && message.metadata && (
-                        <div className="flex items-center space-x-2">
-                            <svg
-                                className="w-6 h-6 text-gray-500 dark:text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                />
-                            </svg>
-                            <a
-                                href={message.metadata.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
-                            >
-                                {message.metadata.filename}
-                                {message.metadata.filesize && (
-                                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">
-                                        ({Math.round(message.metadata.filesize / 1024)}KB)
-                                    </span>
-                                )}
-                            </a>
+                    {product.imageUrl && (
+                        <div className="aspect-video relative overflow-hidden">
+                            <img
+                                src={product.imageUrl}
+                                alt={product.title}
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                     )}
+                    <div className="p-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                            {product.title}
+                        </h3>
+                        {product.price !== undefined && (
+                            <div className="text-red-500 font-bold mb-2">
+                                ¥{product.price.toFixed(2)}
+                            </div>
+                        )}
+                        {product.description && (
+                            <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
+                                {product.description}
+                            </p>
+                        )}
+                        {product.notes && (
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
+                                备注: {product.notes}
+                            </p>
+                        )}
+                        <div className="flex justify-between items-center mt-4">
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {new Date(product.createdAt).toLocaleDateString()}
+                            </span>
+                            <a
+                                href={product.link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-blue-500 hover:bg-blue-600 text-white text-sm px-4 py-2 rounded-md transition-colors"
+                            >
+                                查看详情
+                            </a>
+                        </div>
+                    </div>
                 </div>
             ))}
             {messages.length === 0 && (
-                <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                    暂无消息
+                <div className="col-span-full text-center text-gray-500 dark:text-gray-400 py-8 border-2 border-dashed rounded-lg">
+                    暂无产品信息
                 </div>
             )}
         </div>
     );
-} 
+}

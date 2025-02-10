@@ -2,35 +2,47 @@
 
 import Countdown from '@/components/Countdown';
 import MessageList from '@/components/MessageList';
-import { Message } from '@/types/message';
 import React, { useCallback, useEffect, useState } from 'react';
+
+interface Product {
+    id: string;
+    title: string;
+    imageUrl?: string;
+    link: string;
+    price?: number;
+    description?: string;
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
 
 export default function MessagesPage() {
     const [cardKey, setCardKey] = useState('');
     const [error, setError] = useState('');
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [messages, setMessages] = useState<Product[]>([]);
     const [expiresIn, setExpiresIn] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [isValidated, setIsValidated] = useState(false);
+    const [username, setUsername] = useState<string | null>(null);
 
     // 验证卡密并获取消息
     const fetchMessages = useCallback(async () => {
-        if (!cardKey) return;
+        if (!cardKey || !username) return;
 
         try {
-            const response = await fetch('/api/messages', {
-                headers: { 'x-card-key': cardKey }
-            });
+            const response = await fetch(`/api/user/${username}/message?key=${encodeURIComponent(cardKey)}`);
 
             const data = await response.json();
             if (data.success && data.data) {
-                setMessages(data.data);
+                setMessages(data.data.products || []);
+                setError('');
+                setIsValidated(true);
+
+                // 设置过期时间
                 if (data.expiresIn !== undefined) {
                     const expiresInMs = data.expiresIn;
                     setExpiresIn(Math.floor(expiresInMs / 1000));
                 }
-                setError('');
-                setIsValidated(true);
             } else {
                 if (data.expired) {
                     handleLogout();
@@ -43,9 +55,9 @@ export default function MessagesPage() {
             console.error('Load messages error:', error);
             setError('加载消息失败，请稍后重试');
         }
-    }, [cardKey]);
+    }, [cardKey, username]);
 
-    // 提交卡密
+    // 提交卡密和用户名
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!cardKey.trim()) {
@@ -53,27 +65,17 @@ export default function MessagesPage() {
             return;
         }
 
+        if (!username?.trim()) {
+            setError('请输入用户名');
+            return;
+        }
+
         setIsLoading(true);
         try {
-            const response = await fetch('/api/cardkey/validate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: cardKey.trim() })
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                setError('');
-                // 验证成功后立即获取消息
-                await fetchMessages();
-            } else {
-                setError(data.message || '卡密验证失败');
-                setCardKey('');
-                setIsValidated(false);
-            }
+            await fetchMessages();
         } catch (error) {
             console.error('Validate error:', error);
-            setError('卡密验证失败，请稍后重试');
+            setError('验证失败，请稍后重试');
             setIsValidated(false);
         } finally {
             setIsLoading(false);
@@ -94,6 +96,7 @@ export default function MessagesPage() {
         setMessages([]);
         setExpiresIn(0);
         setIsValidated(false);
+        setUsername(null);
     };
 
     // 处理卡密过期
@@ -103,16 +106,30 @@ export default function MessagesPage() {
     };
 
     return (
-        <div className="w-full max-w-4xl mx-auto px-4">
+        <div className="w-full max-w-6xl mx-auto px-4">
             {!isValidated ? (
                 <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 md:p-8">
                     <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 text-gray-900 dark:text-white">
-                        消息查询系统
+                        商品查询系统
                     </h1>
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
+                            <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                用户名
+                            </label>
+                            <input
+                                type="text"
+                                id="username"
+                                value={username || ''}
+                                onChange={(e) => setUsername(e.target.value)}
+                                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                                placeholder="输入用户名"
+                                disabled={isLoading}
+                            />
+                        </div>
+                        <div>
                             <label htmlFor="cardKey" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                请输入卡密
+                                卡密
                             </label>
                             <input
                                 type="text"
@@ -156,4 +173,4 @@ export default function MessagesPage() {
             )}
         </div>
     );
-} 
+}
