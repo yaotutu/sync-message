@@ -146,7 +146,13 @@ export async function validateCardKey(key: string): Promise<{
     try {
         const cardKey = await prismaClient.cardKey.findUnique({
             where: { key },
-            include: { user: true }
+            include: {
+                user: {
+                    include: {
+                        config: true
+                    }
+                }
+            }
         });
 
         if (!cardKey) {
@@ -155,10 +161,14 @@ export async function validateCardKey(key: string): Promise<{
 
         // 检查是否已使用
         if (cardKey.usedAt) {
-            // 检查是否在有效期内
             const now = new Date();
-            const expireTime = new Date(cardKey.usedAt);
-            expireTime.setDate(expireTime.getDate() + 30); // 30天有效期
+            // 获取用户配置的过期时间，如果没有则使用默认值
+            const expireMinutes = cardKey.user.config?.cardKeyExpireMinutes ||
+                Number(process.env.DEFAULT_CARDKEY_EXPIRE_MINUTES) ||
+                5;
+
+            // 计算过期时间
+            const expireTime = new Date(cardKey.usedAt.getTime() + expireMinutes * 60 * 1000);
 
             if (now > expireTime) {
                 return { success: false, message: '卡密已过期' };
@@ -179,11 +189,18 @@ export async function validateCardKey(key: string): Promise<{
         // 如果未使用，更新使用时间
         const updatedCardKey = await prismaClient.cardKey.update({
             where: { key },
-            data: { usedAt: new Date() }
+            data: {
+                used: true,
+                usedAt: new Date()
+            }
         });
 
-        const expireTime = new Date(updatedCardKey.usedAt!);
-        expireTime.setDate(expireTime.getDate() + 30);
+        // 获取用户配置的过期时间
+        const expireMinutes = cardKey.user.config?.cardKeyExpireMinutes ||
+            Number(process.env.DEFAULT_CARDKEY_EXPIRE_MINUTES) ||
+            5;
+
+        const expireTime = new Date(updatedCardKey.usedAt!.getTime() + expireMinutes * 60 * 1000);
 
         return {
             success: true,

@@ -58,6 +58,7 @@ model UserConfig {
   user        User      @relation(fields: [userId], references: [id])
   theme       String?
   language    String?
+  cardKeyExpireMinutes Int?     // 卡密过期时间（分钟）
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
