@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateWebhookKey, addMessage } from '@/lib/server/db';
 
+interface WebhookBody {
+    sms_content: string;
+    rec_time?: string;
+}
+
 export async function POST(request: NextRequest) {
     try {
         const username = request.headers.get('x-username');
@@ -18,10 +23,10 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(validateResult, { status: 401 });
         }
 
-        const body = await request.json();
-        const received_at = body.received_at || Date.now();
+        const body = await request.json() as WebhookBody;
+        const receivedAt = body.rec_time ? new Date(body.rec_time) : new Date();
 
-        const result = await addMessage(username, body.sms_content, body.rec_time, received_at);
+        const result = await addMessage(username, body.sms_content, receivedAt);
         return NextResponse.json(result);
     } catch (error) {
         console.error('Webhook error:', error);

@@ -424,3 +424,59 @@ export async function deleteUser(username: string): Promise<{ success: boolean; 
 function generateWebhookKey(): string {
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
+
+// 验证 webhook key
+export async function validateWebhookKey(webhookKey: string): Promise<{ success: boolean; message?: string }> {
+    try {
+        console.log('Validating webhook key:', webhookKey);
+        const user = await prismaClient.user.findUnique({
+            where: { webhookKey }
+        });
+
+        console.log('Found user:', user);
+
+        if (!user) {
+            console.log('No user found with webhook key:', webhookKey);
+            return { success: false, message: 'Webhook Key 无效' };
+        }
+
+        return { success: true };
+    } catch (error) {
+        console.error('验证 Webhook Key 失败:', error);
+        return { success: false, message: '验证失败' };
+    }
+}
+
+// 添加消息
+export async function addMessage(username: string, content: string, receivedAt?: Date): Promise<{ success: boolean; message?: string }> {
+    try {
+        console.log('Adding message for user:', username);
+        console.log('Message content:', content);
+        console.log('Received at:', receivedAt);
+
+        const user = await prismaClient.user.findUnique({
+            where: { username }
+        });
+
+        console.log('Found user:', user);
+
+        if (!user) {
+            console.log('No user found with username:', username);
+            return { success: false, message: '用户不存在' };
+        }
+
+        const message = await prismaClient.message.create({
+            data: {
+                content,
+                userId: user.id,
+                receivedAt: receivedAt || new Date()
+            }
+        });
+
+        console.log('Created message:', message);
+        return { success: true, message: '消息添加成功' };
+    } catch (error) {
+        console.error('添加消息失败:', error);
+        return { success: false, message: '添加消息失败' };
+    }
+}

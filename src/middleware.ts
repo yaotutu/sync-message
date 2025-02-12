@@ -71,6 +71,10 @@ export async function middleware(request: NextRequest) {
 export const config = {
     matcher: [
         '/api/user/:path*',
+        '/api/webhook/:path*',
         '/manage/:path*',
+        '/user/:path*/cardkeys',
+        '/user/:path*/profile',
+        '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
     ],
 };
