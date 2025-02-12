@@ -136,55 +136,63 @@ export async function deleteCardKey(id: string): Promise<{ success: boolean; mes
 export async function validateCardKey(key: string): Promise<{
     success: boolean;
     message: string;
+    userId?: string;
     data?: {
         usedAt: Date;
         expireTime: Date;
+        userId: string;
     };
 }> {
     try {
         const cardKey = await prismaClient.cardKey.findUnique({
-            where: { key }
+            where: { key },
+            include: { user: true }
         });
 
         if (!cardKey) {
             return { success: false, message: '卡密不存在' };
         }
 
-        const now = new Date();
+        // 检查是否已使用
+        if (cardKey.usedAt) {
+            // 检查是否在有效期内
+            const now = new Date();
+            const expireTime = new Date(cardKey.usedAt);
+            expireTime.setDate(expireTime.getDate() + 30); // 30天有效期
 
-        if (cardKey.used) {
-            if (cardKey.usedAt) {
-                const expireTime = new Date(cardKey.usedAt.getTime() + 3 * 60 * 1000);
-                if (now > expireTime) {
-                    return { success: false, message: '卡密已过期' };
-                }
-                return {
-                    success: true,
-                    message: '卡密验证成功',
-                    data: {
-                        usedAt: cardKey.usedAt,
-                        expireTime
-                    }
-                };
+            if (now > expireTime) {
+                return { success: false, message: '卡密已过期' };
             }
-            return { success: false, message: '卡密已使用但未记录使用时间' };
+
+            return {
+                success: true,
+                message: '卡密有效',
+                userId: cardKey.userId,
+                data: {
+                    usedAt: cardKey.usedAt,
+                    expireTime,
+                    userId: cardKey.userId
+                }
+            };
         }
 
+        // 如果未使用，更新使用时间
         const updatedCardKey = await prismaClient.cardKey.update({
-            where: { id: cardKey.id },
-            data: {
-                used: true,
-                usedAt: now
-            }
+            where: { key },
+            data: { usedAt: new Date() }
         });
 
-        const expireTime = new Date(now.getTime() + 3 * 60 * 1000);
+        const expireTime = new Date(updatedCardKey.usedAt!);
+        expireTime.setDate(expireTime.getDate() + 30);
+
         return {
             success: true,
             message: '卡密验证成功',
+            userId: updatedCardKey.userId,
             data: {
                 usedAt: updatedCardKey.usedAt!,
-                expireTime
+                expireTime,
+                userId: updatedCardKey.userId
             }
         };
     } catch (error) {
@@ -426,11 +434,19 @@ function generateWebhookKey(): string {
 }
 
 // 验证 webhook key
-export async function validateWebhookKey(webhookKey: string): Promise<{ success: boolean; message?: string }> {
+export async function validateWebhookKey(webhookKey: string): Promise<{
+    success: boolean;
+    message?: string;
+    user?: { id: string; username: string; }
+}> {
     try {
         console.log('Validating webhook key:', webhookKey);
         const user = await prismaClient.user.findUnique({
-            where: { webhookKey }
+            where: { webhookKey },
+            select: {
+                id: true,
+                username: true
+            }
         });
 
         console.log('Found user:', user);
@@ -440,7 +456,7 @@ export async function validateWebhookKey(webhookKey: string): Promise<{ success:
             return { success: false, message: 'Webhook Key 无效' };
         }
 
-        return { success: true };
+        return { success: true, user };
     } catch (error) {
         console.error('验证 Webhook Key 失败:', error);
         return { success: false, message: '验证失败' };
@@ -448,27 +464,16 @@ export async function validateWebhookKey(webhookKey: string): Promise<{ success:
 }
 
 // 添加消息
-export async function addMessage(username: string, content: string, receivedAt?: Date): Promise<{ success: boolean; message?: string }> {
+export async function addMessage(userId: string, content: string, receivedAt?: Date): Promise<{ success: boolean; message?: string }> {
     try {
-        console.log('Adding message for user:', username);
+        console.log('Adding message for user ID:', userId);
         console.log('Message content:', content);
         console.log('Received at:', receivedAt);
-
-        const user = await prismaClient.user.findUnique({
-            where: { username }
-        });
-
-        console.log('Found user:', user);
-
-        if (!user) {
-            console.log('No user found with username:', username);
-            return { success: false, message: '用户不存在' };
-        }
 
         const message = await prismaClient.message.create({
             data: {
                 content,
-                userId: user.id,
+                userId,
                 receivedAt: receivedAt || new Date()
             }
         });
@@ -478,5 +483,20 @@ export async function addMessage(username: string, content: string, receivedAt?:
     } catch (error) {
         console.error('添加消息失败:', error);
         return { success: false, message: '添加消息失败' };
+    }
+}
+
+// 获取用户消息
+export async function getUserMessages(userId: string): Promise<{ success: boolean; data?: any[]; message?: string }> {
+    try {
+        const messages = await prismaClient.message.findMany({
+            where: { userId },
+            orderBy: { receivedAt: 'desc' }
+        });
+
+        return { success: true, data: messages };
+    } catch (error) {
+        console.error('获取用户消息失败:', error);
+        return { success: false, message: '获取用户消息失败', data: [] };
     }
 }
