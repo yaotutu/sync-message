@@ -265,3 +265,20 @@ export async function getUserProducts(username: string): Promise<{ success: bool
         return { success: false, data: [] };
     }
 }
+
+export async function validateUserPassword(username: string, password: string): Promise<boolean> {
+    try {
+        const user = await prismaClient.user.findUnique({
+            where: { username }
+        });
+
+        if (!user) {
+            return false;
+        }
+
+        return user.password === password; // 在实际生产环境中应该使用加密比较
+    } catch (error) {
+        console.error('验证用户密码失败:', error);
+        return false;
+    }
+}

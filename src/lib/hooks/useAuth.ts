@@ -1,175 +1,94 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
 
 export interface AuthStatus {
     isAuthenticated: boolean;
     username: string | null;
-    error: string | null;
     loading: boolean;
-    intendedPath: string | null;  // 添加目标路径存储
 }
 
 export interface AuthActions {
     login: (username: string, password: string) => Promise<boolean>;
-    logout: () => void;
-    validateAuth: () => Promise<void>;
-    setIntendedPath: (path: string) => void;  // 添加设置目标路径的方法
+    logout: () => Promise<void>;
 }
 
-export const useAuth = (): AuthStatus & AuthActions => {
-    const router = useRouter();
+export function useAuth(currentUsername: string) {
     const [status, setStatus] = useState<AuthStatus>({
         isAuthenticated: false,
         username: null,
-        error: null,
         loading: true,
-        intendedPath: null
     });
 
-    const validateAuth = async () => {
-        const username = localStorage.getItem('username');
-        const password = localStorage.getItem('password');
-
-        if (!username || !password) {
-            setStatus(prev => ({
-                ...prev,
-                isAuthenticated: false,
-                username: null,
-                error: null,
-                loading: false
-            }));
-            return;
-        }
-
+    // 使用 useCallback 包装 checkAuth 函数
+    const checkAuth = useCallback(async () => {
         try {
-            const response = await fetch('/api/user/verify', {
-                headers: {
-                    'x-username': username,
-                    'x-password': password
-                }
-            });
-
+            const response = await fetch(`/api/user/${currentUsername}/verify`);
             const data = await response.json();
 
-            setStatus(prev => ({
-                ...prev,
+            setStatus({
                 isAuthenticated: data.success,
-                username: data.success ? username : null,
-                error: data.success ? null : data.message,
-                loading: false
-            }));
-
-            // 如果验证失败，清除存储的凭证
-            if (!data.success) {
-                localStorage.removeItem('username');
-                localStorage.removeItem('password');
-            }
+                username: data.success ? currentUsername : null,
+                loading: false,
+            });
         } catch (error) {
-            setStatus(prev => ({
-                ...prev,
-                isAuthenticated: false,
-                username: null,
-                error: '验证失败',
-                loading: false
-            }));
+            console.error('验证登录状态失败:', error);
+            setStatus({ isAuthenticated: false, username: null, loading: false });
         }
-    };
+    }, [currentUsername]);
+
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
 
     const login = async (username: string, password: string): Promise<boolean> => {
         try {
-            setStatus(prev => ({ ...prev, loading: true, error: null }));
-
-            const response = await fetch('/api/user/login', {
+            const response = await fetch(`/api/user/${username}/login`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ password }),
             });
 
             const data = await response.json();
 
             if (data.success) {
-                localStorage.setItem('username', username);
-                localStorage.setItem('password', password);
-
-                setStatus(prev => ({
-                    ...prev,
+                setStatus({
                     isAuthenticated: true,
                     username,
-                    error: null,
-                    loading: false
-                }));
-
-                // 登录成功后跳转到之前保存的路径
-                if (status.intendedPath) {
-                    router.push(status.intendedPath);
-                    setStatus(prev => ({ ...prev, intendedPath: null }));  // 清除保存的路径
-                }
-
+                    loading: false,
+                });
                 return true;
-            } else {
-                setStatus(prev => ({
-                    ...prev,
-                    isAuthenticated: false,
-                    username: null,
-                    error: data.message || '登录失败',
-                    loading: false
-                }));
-
-                return false;
             }
-        } catch (error) {
-            setStatus(prev => ({
-                ...prev,
-                isAuthenticated: false,
-                username: null,
-                error: '登录失败，请稍后重试',
-                loading: false
-            }));
 
+            return false;
+        } catch (error) {
+            console.error('登录失败:', error);
             return false;
         }
     };
 
     const logout = async () => {
-        try {
-            await fetch('/api/user/logout', {
-                method: 'POST'
-            });
-
-            localStorage.removeItem('username');
-            localStorage.removeItem('password');
-
-            setStatus({
-                isAuthenticated: false,
-                username: null,
-                error: null,
-                loading: false,
-                intendedPath: null
-            });
-        } catch (error) {
-            console.error('退出登录失败:', error);
-            setStatus(prev => ({
-                ...prev,
-                error: '退出登录失败'
-            }));
+        if (status.username) {
+            try {
+                await fetch(`/api/user/${status.username}/logout`, {
+                    method: 'POST',
+                });
+            } catch (error) {
+                console.error('退出登录失败:', error);
+            }
         }
+        setStatus({
+            isAuthenticated: false,
+            username: null,
+            loading: false,
+        });
     };
-
-    const setIntendedPath = (path: string) => {
-        setStatus(prev => ({ ...prev, intendedPath: path }));
-    };
-
-    useEffect(() => {
-        validateAuth();
-    }, []);
 
     return {
         ...status,
         login,
         logout,
-        validateAuth,
-        setIntendedPath
     };
-};
+}

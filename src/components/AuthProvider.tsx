@@ -17,10 +17,11 @@ export const useAuthContext = () => {
 
 interface AuthProviderProps {
     children: ReactNode;
+    username: string;
 }
 
-export const AuthProvider = ({ children }: AuthProviderProps) => {
-    const auth = useAuth();
+export const AuthProvider = ({ children, username }: AuthProviderProps) => {
+    const auth = useAuth(username);
 
     return (
         <AuthContext.Provider value={auth}>
