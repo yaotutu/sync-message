@@ -3,10 +3,12 @@ import { jwtVerify } from 'jose';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { username: string } }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
         const token = request.cookies.get('user_token');
+        const params = await context.params;
+        const { username } = params;
 
         if (!token) {
             return NextResponse.json({ success: false, message: '未登录' });
@@ -18,7 +20,7 @@ export async function GET(
         );
 
         // 验证token中的用户名是否匹配
-        if (payload.username !== params.username) {
+        if (payload.username !== username) {
             return NextResponse.json({ success: false, message: '用户验证失败' });
         }
 

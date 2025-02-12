@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateUserPassword } from '@/lib/server/db';
 import { SignJWT } from 'jose';
-import { cookies } from 'next/headers';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { username: string } }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
         const { password } = await request.json();
+        const params = await context.params;
         const { username } = params;
 
         if (!password) {

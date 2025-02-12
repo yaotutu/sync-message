@@ -1,80 +1,87 @@
 import { addCardKey, deleteCardKey, getUserCardKeys, validateUser } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
 // GET 获取用户卡密列表
 export async function GET(
-    req: NextRequest,
-    context: { params: { username: string } }
+    request: NextRequest,
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
-        const { username } = await context.params;
-        const authUsername = req.headers.get('x-username');
-        const authPassword = req.headers.get('x-password');
+        const token = request.cookies.get('user_token');
+        const params = await context.params;
+        const { username } = params;
 
-        if (!authUsername || !authPassword) {
-            return NextResponse.json({ success: false, message: '未提供认证信息' });
+        if (!token) {
+            return NextResponse.json(
+                { success: false, message: '未登录' },
+                { status: 401 }
+            );
         }
 
-        // 验证用户
-        const validationResult = await validateUser(authUsername, authPassword);
-        if (!validationResult.success) {
-            return NextResponse.json({ success: false, message: '无效的用户名或密码' });
+        const { payload } = await jwtVerify(
+            token.value,
+            new TextEncoder().encode(process.env.NEXTAUTH_SECRET)
+        );
+
+        if (payload.username !== username) {
+            return NextResponse.json(
+                { success: false, message: '用户验证失败' },
+                { status: 401 }
+            );
         }
 
-        // 获取卡密列表
         const result = await getUserCardKeys(username);
-
-        // 计算剩余时间
-        const now = new Date();
-        const cardKeys = result.data.map(key => {
-            if (key.used && key.usedAt) {
-                const expireTime = new Date(key.usedAt.getTime() + 3 * 60 * 1000); // 3分钟后过期
-                if (now < expireTime) {
-                    return {
-                        ...key,
-                        expiresIn: expireTime.getTime() - now.getTime()
-                    };
-                }
-            }
-            return key;
-        });
-
-        return NextResponse.json({ success: true, data: cardKeys });
+        return NextResponse.json(result);
     } catch (error) {
-        console.error('获取用户卡密列表失败:', error);
-        return NextResponse.json({ success: false, message: '获取用户卡密列表失败' });
+        console.error('Get card keys error:', error);
+        return NextResponse.json(
+            { success: false, message: '获取卡密列表失败' },
+            { status: 500 }
+        );
     }
 }
 
 // 生成新卡密
 export async function POST(
-    req: NextRequest,
-    context: { params: { username: string } }
+    request: NextRequest,
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
-        const { username } = await context.params;
-        const count = Number(req.nextUrl.searchParams.get('count')) || 1;
+        const token = request.cookies.get('user_token');
+        const params = await context.params;
+        const { username } = params;
 
-        // 验证用户权限
-        const authUsername = req.headers.get('x-username');
-        const authPassword = req.headers.get('x-password');
-
-        if (!authUsername || !authPassword) {
-            return NextResponse.json({ success: false, message: '未提供认证信息' });
+        if (!token) {
+            return NextResponse.json(
+                { success: false, message: '未登录' },
+                { status: 401 }
+            );
         }
 
-        // 验证用户
-        const validationResult = await validateUser(authUsername, authPassword);
-        if (!validationResult.success) {
-            return NextResponse.json({ success: false, message: '无效的用户名或密码' });
+        const { payload } = await jwtVerify(
+            token.value,
+            new TextEncoder().encode(process.env.NEXTAUTH_SECRET)
+        );
+
+        if (payload.username !== username) {
+            return NextResponse.json(
+                { success: false, message: '用户验证失败' },
+                { status: 401 }
+            );
         }
 
-        // 创建卡密
+        const { searchParams } = new URL(request.url);
+        const count = Number(searchParams.get('count')) || 1;
+
         const result = await addCardKey(username, count);
         return NextResponse.json(result);
     } catch (error) {
-        console.error('添加卡密失败:', error);
-        return NextResponse.json({ success: false, message: '添加卡密失败' });
+        console.error('Generate card keys error:', error);
+        return NextResponse.json(
+            { success: false, message: '生成卡密失败' },
+            { status: 500 }
+        );
     }
 }
 
