@@ -9,4 +9,4 @@ export async function POST(req: NextRequest) {
         console.error('退出登录失败:', error);
         return NextResponse.json({ success: false, message: '退出登录失败' });
     }
-} 
+}
