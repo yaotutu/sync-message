@@ -5,13 +5,21 @@ const prismaClient = new PrismaClient();
 export const db = prismaClient;
 
 // 验证管理员密码
-export async function validateAdminPassword(password: string): Promise<boolean> {
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    if (!adminPassword) {
-        console.error('未设置管理员密码环境变量 ADMIN_PASSWORD');
+export async function validateAdminPassword(username: string, password: string): Promise<boolean> {
+    try {
+        const admin = await prismaClient.admin.findUnique({
+            where: { username }
+        });
+
+        if (!admin) {
+            return false;
+        }
+
+        return admin.password === password; // 在实际生产环境中应该使用加密比较
+    } catch (error) {
+        console.error('验证管理员密码失败:', error);
         return false;
     }
-    return password === adminPassword;
 }
 
 // 验证用户
@@ -247,8 +255,8 @@ export async function updateUserConfig(
     }
 }
 
-// 获取用户商品
-export async function getUserProducts(username: string): Promise<{ success: boolean; data: any[] }> {
+// 获取用户商品列表
+export async function getUserProducts(username: string) {
     try {
         const user = await prismaClient.user.findUnique({
             where: { username },
@@ -256,13 +264,77 @@ export async function getUserProducts(username: string): Promise<{ success: bool
         });
 
         if (!user) {
-            return { success: false, data: [] };
+            return { success: false, message: '用户不存在', data: [] };
         }
 
         return { success: true, data: user.products };
     } catch (error) {
         console.error('获取用户商品列表失败:', error);
-        return { success: false, data: [] };
+        return { success: false, message: '获取用户商品列表失败', data: [] };
+    }
+}
+
+// 添加商品
+export async function addProduct(username: string, data: {
+    name: string;
+    description?: string;
+    price?: number;
+    imageUrl?: string;
+}) {
+    try {
+        const user = await prismaClient.user.findUnique({
+            where: { username }
+        });
+
+        if (!user) {
+            return { success: false, message: '用户不存在' };
+        }
+
+        const product = await prismaClient.product.create({
+            data: {
+                ...data,
+                userId: user.id
+            }
+        });
+
+        return { success: true, message: '商品添加成功', data: product };
+    } catch (error) {
+        console.error('添加商品失败:', error);
+        return { success: false, message: '添加商品失败' };
+    }
+}
+
+// 更新商品
+export async function updateProduct(productId: string, data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    imageUrl?: string;
+}) {
+    try {
+        const product = await prismaClient.product.update({
+            where: { id: productId },
+            data
+        });
+
+        return { success: true, message: '商品更新成功', data: product };
+    } catch (error) {
+        console.error('更新商品失败:', error);
+        return { success: false, message: '更新商品失败' };
+    }
+}
+
+// 删除商品
+export async function deleteProduct(productId: string) {
+    try {
+        await prismaClient.product.delete({
+            where: { id: productId }
+        });
+
+        return { success: true, message: '商品删除成功' };
+    } catch (error) {
+        console.error('删除商品失败:', error);
+        return { success: false, message: '删除商品失败' };
     }
 }
 
@@ -281,4 +353,74 @@ export async function validateUserPassword(username: string, password: string): 
         console.error('验证用户密码失败:', error);
         return false;
     }
+}
+
+// 获取所有用户
+export async function getAllUsers(): Promise<{ success: boolean; data?: any[]; message?: string }> {
+    try {
+        const users = await prismaClient.user.findMany({
+            select: {
+                username: true,
+                webhookKey: true,
+                createdAt: true,
+            }
+        });
+        return { success: true, data: users };
+    } catch (error) {
+        console.error('获取用户列表失败:', error);
+        return { success: false, message: '获取用户列表失败' };
+    }
+}
+
+// 添加用户
+export async function addUser(username: string, password: string): Promise<{ success: boolean; message: string }> {
+    try {
+        const existingUser = await prismaClient.user.findUnique({
+            where: { username }
+        });
+
+        if (existingUser) {
+            return { success: false, message: '用户名已存在' };
+        }
+
+        await prismaClient.user.create({
+            data: {
+                username,
+                password,
+                webhookKey: generateWebhookKey() // 生成一个随机的 webhook key
+            }
+        });
+
+        return { success: true, message: '用户创建成功' };
+    } catch (error) {
+        console.error('创建用户失败:', error);
+        return { success: false, message: '创建用户失败' };
+    }
+}
+
+// 删除用户
+export async function deleteUser(username: string): Promise<{ success: boolean; message: string }> {
+    try {
+        const user = await prismaClient.user.findUnique({
+            where: { username }
+        });
+
+        if (!user) {
+            return { success: false, message: '用户不存在' };
+        }
+
+        await prismaClient.user.delete({
+            where: { username }
+        });
+
+        return { success: true, message: '用户删除成功' };
+    } catch (error) {
+        console.error('删除用户失败:', error);
+        return { success: false, message: '删除用户失败' };
+    }
+}
+
+// 生成 webhook key
+function generateWebhookKey(): string {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }

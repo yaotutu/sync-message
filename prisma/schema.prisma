@@ -10,18 +10,29 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./data/users.db"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("admins")
 }
 
 model User {
-  id        String      @id @default(cuid())
-  username  String      @unique
+  id        String    @id @default(cuid())
+  username  String    @unique
   password  String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  webhookKey String   @unique @default(uuid())
+  cardKeys  CardKey[]
   products  Product[]
   config    UserConfig?
-  cardKeys  CardKey[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   messages  Message[]
 
   @@map("users")
@@ -29,28 +40,26 @@ model User {
 
 model Product {
   id          String    @id @default(cuid())
-  title       String
-  imageUrl    String?
-  link        String
-  price       Float?
+  name        String
   description String?
-  notes       String?
+  price       Float?
+  imageUrl    String?
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  user        User      @relation(fields: [userId], references: [username])
-  userId      String
 
   @@map("products")
 }
 
 model UserConfig {
-  id        String   @id @default(cuid())
-  theme     String?
-  language  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @unique
+  id          String    @id @default(cuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id])
+  theme       String?
+  language    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@map("user_configs")
 }
@@ -60,21 +69,22 @@ model CardKey {
   key       String    @unique
   userId    String
   user      User      @relation(fields: [userId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
   used      Boolean   @default(false)
   usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@map("card_keys")
 }
 
 model Message {
-  id        String    @id @default(cuid())
-  content   String
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  content     String
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  receivedAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@map("messages")
 }

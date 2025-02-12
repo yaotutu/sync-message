@@ -198,8 +198,8 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                                         onClick={generateCardKeys}
                                         disabled={generating}
                                         className={`px-4 py-2 rounded-md text-white transition-colors flex-1 sm:flex-none ${generating
-                                                ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
-                                                : 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700'
+                                            ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
+                                            : 'bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700'
                                             }`}
                                     >
                                         {generating ? '生成中...' : '生成卡密'}
@@ -231,8 +231,8 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                                 <button
                                     onClick={() => setFilterStatus('all')}
                                     className={`px-4 py-2 rounded-md transition-colors ${filterStatus === 'all'
-                                            ? 'bg-blue-500 text-white'
-                                            : 'text-blue-500 border border-blue-500 hover:bg-blue-50'
+                                        ? 'bg-blue-500 text-white'
+                                        : 'text-blue-500 border border-blue-500 hover:bg-blue-50'
                                         }`}
                                 >
                                     全部
@@ -240,8 +240,8 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                                 <button
                                     onClick={() => setFilterStatus('unused')}
                                     className={`px-4 py-2 rounded-md transition-colors ${filterStatus === 'unused'
-                                            ? 'bg-green-500 text-white'
-                                            : 'text-green-500 border border-green-500 hover:bg-green-50'
+                                        ? 'bg-green-500 text-white'
+                                        : 'text-green-500 border border-green-500 hover:bg-green-50'
                                         }`}
                                 >
                                     未使用
@@ -249,8 +249,8 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                                 <button
                                     onClick={() => setFilterStatus('used')}
                                     className={`px-4 py-2 rounded-md transition-colors ${filterStatus === 'used'
-                                            ? 'bg-gray-500 text-white'
-                                            : 'text-gray-500 border border-gray-500 hover:bg-gray-50'
+                                        ? 'bg-gray-500 text-white'
+                                        : 'text-gray-500 border border-gray-500 hover:bg-gray-50'
                                         }`}
                                 >
                                     已使用
@@ -260,8 +260,8 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
 
                         {error && (
                             <div className={`mb-6 p-4 rounded-md ${error.includes('成功')
-                                    ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
-                                    : 'bg-red-100 dark:bg-red-900/50 text-red-500 dark:text-red-400'
+                                ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400'
+                                : 'bg-red-100 dark:bg-red-900/50 text-red-500 dark:text-red-400'
                                 }`}>
                                 {error}
                             </div>

@@ -1,47 +1,96 @@
-import { addUser, deleteUser, getAllUsers, validateAdminPassword } from '@/lib/server/db';
+import { addUser, deleteUser, getAllUsers } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+interface AddUserRequest {
+    username: string;
+    password: string;
+}
 
 // 获取用户列表
 export async function GET(request: NextRequest) {
-    const adminPassword = request.headers.get('x-admin-password');
-    if (!adminPassword || !(await validateAdminPassword(adminPassword))) {
-        return NextResponse.json({ success: false, message: '管理员密码错误' }, { status: 401 });
-    }
+    try {
+        const session = await getServerSession(authOptions);
 
-    const result = await getAllUsers();
-    return NextResponse.json(result);
+        if (!session || session.user.role !== 'admin') {
+            return NextResponse.json(
+                { success: false, message: '未授权访问' },
+                { status: 401 }
+            );
+        }
+
+        const result = await getAllUsers();
+        return NextResponse.json(result);
+    } catch (error) {
+        console.error('获取用户列表失败:', error);
+        return NextResponse.json(
+            { success: false, message: '获取用户列表失败' },
+            { status: 500 }
+        );
+    }
 }
 
 // 添加新用户
 export async function POST(request: NextRequest) {
-    const adminPassword = request.headers.get('x-admin-password');
-    if (!adminPassword || !(await validateAdminPassword(adminPassword))) {
-        return NextResponse.json({ success: false, message: '管理员密码错误' }, { status: 401 });
+    try {
+        const session = await getServerSession(authOptions);
+
+        if (!session || session.user.role !== 'admin') {
+            return NextResponse.json(
+                { success: false, message: '未授权访问' },
+                { status: 401 }
+            );
+        }
+
+        const body = await request.json() as AddUserRequest;
+        const { username, password } = body;
+
+        if (!username || !password) {
+            return NextResponse.json(
+                { success: false, message: '用户名和密码不能为空' },
+                { status: 400 }
+            );
+        }
+
+        const result = await addUser(username, password);
+        return NextResponse.json(result);
+    } catch (error) {
+        console.error('添加用户失败:', error);
+        return NextResponse.json(
+            { success: false, message: '添加用户失败' },
+            { status: 500 }
+        );
     }
-
-    const body = await request.json();
-    const { username, password } = body;
-
-    if (!username || !password) {
-        return NextResponse.json({ success: false, message: '用户名和密码不能为空' }, { status: 400 });
-    }
-
-    const result = await addUser(username, password);
-    return NextResponse.json(result);
 }
 
 // 删除用户
 export async function DELETE(request: NextRequest) {
-    const adminPassword = request.headers.get('x-admin-password');
-    if (!adminPassword || !(await validateAdminPassword(adminPassword))) {
-        return NextResponse.json({ success: false, message: '管理员密码错误' }, { status: 401 });
-    }
+    try {
+        const session = await getServerSession(authOptions);
 
-    const username = request.nextUrl.searchParams.get('username');
-    if (!username) {
-        return NextResponse.json({ success: false, message: '用户名不能为空' }, { status: 400 });
-    }
+        if (!session || session.user.role !== 'admin') {
+            return NextResponse.json(
+                { success: false, message: '未授权访问' },
+                { status: 401 }
+            );
+        }
 
-    const result = await deleteUser(username);
-    return NextResponse.json(result);
+        const username = request.nextUrl.searchParams.get('username');
+        if (!username) {
+            return NextResponse.json(
+                { success: false, message: '用户名不能为空' },
+                { status: 400 }
+            );
+        }
+
+        const result = await deleteUser(username);
+        return NextResponse.json(result);
+    } catch (error) {
+        console.error('删除用户失败:', error);
+        return NextResponse.json(
+            { success: false, message: '删除用户失败' },
+            { status: 500 }
+        );
+    }
 } 
