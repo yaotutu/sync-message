@@ -35,6 +35,30 @@ export default function MessagePage() {
     const [cardKey, setCardKey] = useState(urlKey || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const loadProducts = async () => {
+        try {
+            setLoading(true);
+            setError('');
+
+            // 仅获取商品信息
+            const response = await fetch(`/api/user/${username}/products`);
+            const data = await response.json();
+
+            if (data.success && data.data) {
+                setProducts(data.data);
+                setError('');
+            } else {
+                setError(data.message || '加载商品信息失败');
+                setProducts([]);
+            }
+        } catch (error) {
+            setError('加载商品信息失败');
+            setProducts([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const loadData = async (key: string) => {
         if (!key) {
             setError('未提供卡密');
@@ -51,18 +75,15 @@ export default function MessagePage() {
             const data = await response.json();
 
             if (data.success && data.data) {
-                setProducts(data.data.products || []);
                 if (data.data.config) {
                     setUserConfig(data.data.config);
                 }
                 setError('');
             } else {
                 setError(data.message || '加载失败');
-                setProducts([]);
             }
         } catch (error) {
             setError('加载失败');
-            setProducts([]);
         } finally {
             setLoading(false);
             setIsSubmitting(false);
@@ -71,10 +92,12 @@ export default function MessagePage() {
 
     // 初始加载
     useEffect(() => {
+        // 首先加载商品信息
+        loadProducts();
+
+        // 如果有卡密，加载消息
         if (urlKey) {
             loadData(urlKey);
-        } else {
-            setLoading(false);
         }
     }, [username, urlKey]);
 
@@ -106,6 +129,12 @@ export default function MessagePage() {
                     )}
                 </div>
 
+                {error && (
+                    <div className="mb-8 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-200 p-4 rounded-lg">
+                        {error}
+                    </div>
+                )}
+
                 {/* 卡密输入表单 */}
                 <div className="mb-8">
                     <form onSubmit={handleSubmit} className="max-w-md mx-auto">
@@ -127,12 +156,6 @@ export default function MessagePage() {
                         </div>
                     </form>
                 </div>
-
-                {error && (
-                    <div className="mb-8 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-200 p-4 rounded-lg">
-                        {error}
-                    </div>
-                )}
 
                 {loading ? (
                     <div className="flex justify-center items-center min-h-[200px]">
