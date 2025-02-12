@@ -101,12 +101,10 @@ export const useAuth = (): AuthStatus & AuthActions => {
                     loading: false
                 }));
 
-                // 登录成功后跳转到之前保存的路径或默认路径
+                // 登录成功后跳转到之前保存的路径
                 if (status.intendedPath) {
                     router.push(status.intendedPath);
                     setStatus(prev => ({ ...prev, intendedPath: null }));  // 清除保存的路径
-                } else {
-                    router.push(`/user/${username}/cardkeys`);  // 默认跳转到用户的卡密页面
                 }
 
                 return true;
@@ -134,19 +132,29 @@ export const useAuth = (): AuthStatus & AuthActions => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('username');
-        localStorage.removeItem('password');
+    const logout = async () => {
+        try {
+            await fetch('/api/user/logout', {
+                method: 'POST'
+            });
 
-        setStatus({
-            isAuthenticated: false,
-            username: null,
-            error: null,
-            loading: false,
-            intendedPath: null
-        });
+            localStorage.removeItem('username');
+            localStorage.removeItem('password');
 
-        router.push('/login');
+            setStatus({
+                isAuthenticated: false,
+                username: null,
+                error: null,
+                loading: false,
+                intendedPath: null
+            });
+        } catch (error) {
+            console.error('退出登录失败:', error);
+            setStatus(prev => ({
+                ...prev,
+                error: '退出登录失败'
+            }));
+        }
     };
 
     const setIntendedPath = (path: string) => {

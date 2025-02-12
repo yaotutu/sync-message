@@ -1,22 +1,14 @@
 # 开发日志
 
-## 2025-02-12 20:45:50 UTC+8
+## 2025-02-12 21:05
+- 修复退出登录功能
+  - 修改src/lib/hooks/useAuth.ts中的logout函数
+  - 添加对/api/user/logout接口的调用
+  - 确保退出后保持当前路由不变
+  - 添加错误处理逻辑
 
-### 修改内容
-- 修复退出登录功能异常问题
-- 添加授权验证中间件
-- 创建auth.ts实现session验证
-
-### 影响文件
-- src/app/api/user/logout/route.ts
-- src/lib/server/auth.ts
-
-### 测试方案
-1. 已登录用户点击退出按钮
-2. 未登录用户尝试调用logout接口
-3. 验证路由保持不变
-4. 检查session cookie是否被清除
-
-### 待办事项
-- [ ] 添加单元测试
-- [ ] 更新API文档
+## 2025-02-12 20:27
+- 开始分析退出登录功能异常问题
+  - 检查session管理相关代码
+  - 分析logout接口实现
+  - 检查useAuth hook逻辑
