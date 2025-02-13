@@ -5,6 +5,7 @@ import UserLogin from './login';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { use } from 'react';
+import ContactModal from '@/components/ContactModal';
 
 interface UserPageProps {
     params: Promise<{ username: string }>;
@@ -14,6 +15,7 @@ export default function UserPage({ params }: UserPageProps) {
     const { username } = use(params);
     const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const router = useRouter();
 
     const checkLoginStatus = useCallback(async () => {
@@ -52,7 +54,7 @@ export default function UserPage({ params }: UserPageProps) {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col ">
             <nav className="bg-white dark:bg-gray-800 shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
@@ -77,7 +79,7 @@ export default function UserPage({ params }: UserPageProps) {
                 </div>
             </nav>
 
-            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8 flex-1">
                 <div className="space-y-6">
                     {/* 标题区域 - 优化移动端显示 */}
                     <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -145,6 +147,28 @@ export default function UserPage({ params }: UserPageProps) {
                     </div>
                 </div>
             </main>
+            <footer className="py-4 border-t bg-white dark:bg-gray-800">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                            © {new Date().getFullYear()} Sync Message. All rights reserved.
+                        </div>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                            <button
+                                onClick={() => setIsContactModalOpen(true)}
+                                className="hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+                            >
+                                联系我们
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+
+            <ContactModal
+                isOpen={isContactModalOpen}
+                onClose={() => setIsContactModalOpen(false)}
+            />
         </div>
     );
 }
