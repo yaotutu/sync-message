@@ -220,8 +220,10 @@ export async function validateCardKey(key: string): Promise<{
 
 // 获取用户配置
 interface UserConfigData {
+    title?: string;
     theme?: string;
     language?: string;
+    cardKeyExpireMinutes?: number;
 }
 
 export async function getUserConfig(username: string): Promise<{ success: boolean; data?: any }> {
@@ -245,8 +247,7 @@ export async function getUserConfig(username: string): Promise<{ success: boolea
 // 更新用户配置
 export async function updateUserConfig(
     username: string,
-    data: UserConfigData | string,
-    value?: any
+    data: UserConfigData
 ): Promise<{ success: boolean; message: string }> {
     try {
         const user = await prismaClient.user.findUnique({
@@ -257,25 +258,29 @@ export async function updateUserConfig(
             return { success: false, message: '用户不存在' };
         }
 
-        let updateData: any;
-        if (typeof data === 'string') {
-            updateData = { [data]: value };
-        } else {
-            updateData = data;
+        // 过滤掉 undefined 值
+        const filteredData = Object.fromEntries(
+            Object.entries(data).filter(([_, value]) => value !== undefined)
+        );
+
+        // 如果没有有效数据要更新，直接返回成功
+        if (Object.keys(filteredData).length === 0) {
+            return { success: true, message: '无需更新' };
         }
 
         await prismaClient.userConfig.upsert({
             where: { userId: user.id },
-            update: updateData,
+            update: filteredData,
             create: {
                 userId: user.id,
-                ...updateData
+                ...filteredData
             }
         });
 
         return { success: true, message: '用户配置更新成功' };
     } catch (error) {
-        console.error('更新用户配置失败:', error);
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        console.error('更新用户配置失败:', errorMessage);
         return { success: false, message: '更新用户配置失败' };
     }
 }

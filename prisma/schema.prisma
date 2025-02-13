@@ -59,6 +59,7 @@ model UserConfig {
   id          String    @id @default(cuid())
   userId      String    @unique
   user        User      @relation(fields: [userId], references: [id])
+  title       String?   // 页面标题
   theme       String?
   language    String?
   cardKeyExpireMinutes Int?     // 卡密过期时间（分钟）
