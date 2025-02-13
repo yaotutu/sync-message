@@ -1,28 +1,32 @@
-import { addProduct, deleteProduct, getUserProducts, updateProduct } from '@/lib/server/db';
+import { addProduct, deleteProduct, getUserProducts, updateProduct, type ProductInput, type ProductUpdateInput } from '@/lib/server/db';
 import { NextRequest, NextResponse } from 'next/server';
 
-// GET 获取用户产品列表
+// GET 获取商品列表
 export async function GET(
     req: NextRequest,
-    context: { params: { username: string } }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
-        const { username } = await context.params;
-        const result = await getUserProducts(username);
+        const params = await context.params;
+        const result = await getUserProducts(params.username);
         return NextResponse.json(result);
     } catch (error) {
-        console.error('获取用户产品失败:', error);
-        return NextResponse.json({ success: false, message: '获取用户产品失败' });
+        console.error('获取商品列表失败:', error);
+        return NextResponse.json({
+            success: false,
+            message: '获取商品列表失败',
+            data: []
+        });
     }
 }
 
-// POST 添加产品
+// POST 添加商品
 export async function POST(
     req: NextRequest,
-    context: { params: { username: string } }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
-        const { username } = await context.params;
+        const params = await context.params;
         const data = await req.json();
 
         // 验证必需字段
@@ -33,53 +37,52 @@ export async function POST(
             });
         }
 
-        if (!data.title || !data.link) {
+        if (!data.title?.trim() || !data.link?.trim()) {
             return NextResponse.json({
                 success: false,
                 message: '商品标题和链接是必需的'
             });
         }
 
-        // 构造产品数据
-        const productData = {
+        // 构造商品数据
+        const productData: ProductInput = {
             title: data.title.trim(),
             link: data.link.trim(),
-            userId: username,
-            imageUrl: data.imageUrl?.trim(),
-            price: typeof data.price === 'number' ? data.price : undefined,
-            description: data.description?.trim(),
-            notes: data.notes?.trim()
+            imageUrl: data.imageUrl?.trim() || null,
+            price: typeof data.price === 'number' ? data.price : null,
+            description: data.description?.trim() || null,
+            notes: data.notes?.trim() || null
         };
 
-        const result = await addProduct(productData);
+        const result = await addProduct(params.username, productData);
         return NextResponse.json(result);
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '添加产品失败';
+        console.error('添加商品失败:', error);
         return NextResponse.json({
             success: false,
-            message: errorMessage
+            message: error instanceof Error ? error.message : '添加商品失败'
         });
     }
 }
 
-// PUT 更新产品
+// PUT 更新商品
 export async function PUT(
     req: NextRequest,
-    context: { params: { username: string } }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
-        const { username } = await context.params;
-        const { id, ...data } = await req.json();
+        const params = await context.params;
+        const data = await req.json();
 
-        if (!id) {
+        // 验证必需字段
+        if (!data || typeof data !== 'object' || !data.id) {
             return NextResponse.json({
                 success: false,
-                message: '产品ID是必需的'
+                message: '无效的请求数据'
             });
         }
 
-        // 验证必需字段
-        if (!data.title || !data.link) {
+        if (!data.title?.trim() || !data.link?.trim()) {
             return NextResponse.json({
                 success: false,
                 message: '商品标题和链接是必需的'
@@ -87,49 +90,50 @@ export async function PUT(
         }
 
         // 构造更新数据
-        const updateData = {
-            title: data.title,
-            link: data.link,
-            imageUrl: data.imageUrl || undefined,
-            price: data.price || undefined,
-            description: data.description || undefined,
-            notes: data.notes || undefined
+        const updateData: ProductUpdateInput = {
+            id: data.id,
+            title: data.title.trim(),
+            link: data.link.trim(),
+            imageUrl: data.imageUrl?.trim() || null,
+            price: typeof data.price === 'number' ? data.price : null,
+            description: data.description?.trim() || null,
+            notes: data.notes?.trim() || null
         };
 
-        const result = await updateProduct(id, updateData);
+        const result = await updateProduct(params.username, updateData);
         return NextResponse.json(result);
     } catch (error) {
-        console.error('更新产品失败:', error);
+        console.error('更新商品失败:', error);
         return NextResponse.json({
             success: false,
-            message: error instanceof Error ? error.message : '更新产品失败'
+            message: error instanceof Error ? error.message : '更新商品失败'
         });
     }
 }
 
-// DELETE 删除产品
+// DELETE 删除商品
 export async function DELETE(
     req: NextRequest,
-    context: { params: { username: string } }
+    context: { params: Promise<{ username: string }> }
 ) {
     try {
-        const { username } = await context.params;
-        const { id } = await req.json();
+        const params = await context.params;
+        const data = await req.json();
 
-        if (!id) {
+        if (!data?.id) {
             return NextResponse.json({
                 success: false,
-                message: '产品ID是必需的'
+                message: '商品ID是必需的'
             });
         }
 
-        const result = await deleteProduct(id);
+        const result = await deleteProduct(params.username, data.id);
         return NextResponse.json(result);
     } catch (error) {
-        console.error('删除产品失败:', error);
+        console.error('删除商品失败:', error);
         return NextResponse.json({
             success: false,
-            message: error instanceof Error ? error.message : '删除产品失败'
+            message: error instanceof Error ? error.message : '删除商品失败'
         });
     }
 } 

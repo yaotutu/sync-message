@@ -1,63 +1,65 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Toaster } from 'sonner';
 
 interface Product {
-    id?: string;
+    id: string;
     title: string;
-    imageUrl?: string;
     link: string;
+    imageUrl: string | null;
+    price: number | null;
+    description: string | null;
+    notes: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+interface ProductFormData {
+    title: string;
+    link: string;
+    imageUrl?: string;
     price?: number;
     description?: string;
     notes?: string;
-    createdAt?: number;
-    updatedAt?: number;
 }
 
 interface ProductsPageProps {
     params: Promise<{ username: string }>;
 }
 
-export default function ProductsPage({ params }: ProductsPageProps) {
-    const { username } = use(params);
+export default function ProductsPage({ params: paramsPromise }: ProductsPageProps) {
     const router = useRouter();
+    const { username } = use(paramsPromise);
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
-
-    // 新商品表单状态
     const [showForm, setShowForm] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-    const [formData, setFormData] = useState<Product>({
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [formData, setFormData] = useState<ProductFormData>({
         title: '',
-        imageUrl: '',
         link: '',
+        imageUrl: '',
         price: 0,
         description: '',
         notes: ''
     });
 
-    const [isUploading, setIsUploading] = useState(false);
-
     // 加载商品列表
     const loadProducts = async () => {
         try {
             const response = await fetch(`/api/user/${username}/products`);
-            const data = await response.json();
-            if (data.success) {
-                setProducts(data.data);
+            const result = await response.json();
+
+            if (result.success) {
+                setProducts(result.data);
             } else {
-                if (data.message === '未登录') {
-                    router.push(`/user/${username}`);
-                    return;
-                }
-                setError(data.message);
+                toast.error(result.message || '加载商品列表失败');
             }
-        } catch (err) {
-            setError('加载商品列表失败');
+        } catch (error) {
+            toast.error('加载商品列表失败');
         } finally {
             setIsLoading(false);
         }
@@ -72,36 +74,19 @@ export default function ProductsPage({ params }: ProductsPageProps) {
         const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: name === 'price' ? Number(value) : value
+            [name]: name === 'price' ? Number(value) || 0 : value
         }));
     };
 
     // 处理表单提交
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
-        setSuccess('');
-        setIsLoading(true);
+        setIsSubmitting(true);
 
         try {
-            // 验证必需字段
-            if (!formData.title || !formData.link) {
-                setError('商品标题和链接是必需的');
-                return;
-            }
-
-            // 构造请求数据
-            const requestData = {
-                ...formData,
-                price: formData.price ? Number(formData.price) : undefined,
-                imageUrl: formData.imageUrl || undefined,
-                description: formData.description || undefined,
-                notes: formData.notes || undefined
-            };
-
             const url = `/api/user/${username}/products`;
             const method = editingProduct ? 'PUT' : 'POST';
-            const body = editingProduct ? { ...requestData, id: editingProduct.id } : requestData;
+            const body = editingProduct ? { ...formData, id: editingProduct.id } : formData;
 
             const response = await fetch(url, {
                 method,
@@ -111,32 +96,28 @@ export default function ProductsPage({ params }: ProductsPageProps) {
                 body: JSON.stringify(body)
             });
 
-            const data = await response.json();
+            const result = await response.json();
 
-            if (data.success) {
-                setSuccess(data.message);
+            if (result.success) {
+                toast.success(result.message);
                 setShowForm(false);
                 setEditingProduct(null);
                 setFormData({
                     title: '',
-                    imageUrl: '',
                     link: '',
+                    imageUrl: '',
                     price: 0,
                     description: '',
                     notes: ''
                 });
                 loadProducts();
             } else {
-                if (data.message === '未登录') {
-                    router.push(`/user/${username}`);
-                    return;
-                }
-                setError(data.message);
+                toast.error(result.message);
             }
-        } catch (err) {
-            setError('保存商品失败，请稍后重试');
+        } catch (error) {
+            toast.error('操作失败，请重试');
         } finally {
-            setIsLoading(false);
+            setIsSubmitting(false);
         }
     };
 
@@ -145,15 +126,13 @@ export default function ProductsPage({ params }: ProductsPageProps) {
         setEditingProduct(product);
         setFormData({
             title: product.title,
-            imageUrl: product.imageUrl || '',
             link: product.link,
+            imageUrl: product.imageUrl || '',
             price: product.price || 0,
             description: product.description || '',
             notes: product.notes || ''
         });
         setShowForm(true);
-        setError('');
-        setSuccess('');
     };
 
     // 删除商品
@@ -171,58 +150,16 @@ export default function ProductsPage({ params }: ProductsPageProps) {
                 body: JSON.stringify({ id })
             });
 
-            const data = await response.json();
+            const result = await response.json();
 
-            if (data.success) {
-                setSuccess(data.message);
+            if (result.success) {
+                toast.success(result.message);
                 loadProducts();
             } else {
-                if (data.message === '未登录') {
-                    router.push(`/user/${username}`);
-                    return;
-                }
-                setError(data.message);
+                toast.error(result.message);
             }
-        } catch (err) {
-            setError('删除商品失败，请稍后重试');
-        }
-    };
-
-    // 处理图片上传
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsUploading(true);
-        setError('');
-
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await fetch(`/api/user/${username}/upload`, {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setFormData(prev => ({
-                    ...prev,
-                    imageUrl: data.data.url
-                }));
-            } else {
-                if (data.message === '未登录') {
-                    router.push(`/user/${username}`);
-                    return;
-                }
-                setError(data.message);
-            }
-        } catch (err) {
-            setError('图片上传失败，请稍后重试');
-        } finally {
-            setIsUploading(false);
+        } catch (error) {
+            toast.error('删除失败，请重试');
         }
     };
 
@@ -236,6 +173,7 @@ export default function ProductsPage({ params }: ProductsPageProps) {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <Toaster />
             <nav className="bg-white dark:bg-gray-800 shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">
@@ -266,14 +204,12 @@ export default function ProductsPage({ params }: ProductsPageProps) {
                                     setEditingProduct(null);
                                     setFormData({
                                         title: '',
-                                        imageUrl: '',
                                         link: '',
+                                        imageUrl: '',
                                         price: 0,
                                         description: '',
                                         notes: ''
                                     });
-                                    setError('');
-                                    setSuccess('');
                                 }}
                                 className="bg-green-500 dark:bg-green-600 text-white px-4 py-2 rounded-md 
                                         hover:bg-green-600 dark:hover:bg-green-700 transition-colors"
@@ -281,18 +217,6 @@ export default function ProductsPage({ params }: ProductsPageProps) {
                                 {showForm ? '取消' : '添加商品'}
                             </button>
                         </div>
-
-                        {error && (
-                            <div className="mb-4 text-red-500 text-sm">
-                                {error}
-                            </div>
-                        )}
-
-                        {success && (
-                            <div className="mb-4 text-green-500 text-sm">
-                                {success}
-                            </div>
-                        )}
 
                         {showForm && (
                             <form onSubmit={handleSubmit} className="space-y-6 mb-8">
@@ -326,6 +250,19 @@ export default function ProductsPage({ params }: ProductsPageProps) {
 
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        商品图片链接
+                                    </label>
+                                    <input
+                                        type="url"
+                                        name="imageUrl"
+                                        value={formData.imageUrl}
+                                        onChange={handleInputChange}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                         价格
                                     </label>
                                     <input
@@ -337,35 +274,6 @@ export default function ProductsPage({ params }: ProductsPageProps) {
                                         min="0"
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white sm:text-sm"
                                     />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        商品图片
-                                    </label>
-                                    <div className="mt-1 flex items-center space-x-4">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                            disabled={isUploading}
-                                            className="block w-full text-sm text-gray-500 dark:text-gray-300
-                                                    file:mr-4 file:py-2 file:px-4
-                                                    file:rounded-md file:border-0
-                                                    file:text-sm file:font-semibold
-                                                    file:bg-blue-50 file:text-blue-700
-                                                    hover:file:bg-blue-100
-                                                    dark:file:bg-blue-900 dark:file:text-blue-200"
-                                        />
-                                        {isUploading && <span className="text-sm text-gray-500">上传中...</span>}
-                                    </div>
-                                    {formData.imageUrl && (
-                                        <img
-                                            src={formData.imageUrl}
-                                            alt="商品预览"
-                                            className="mt-2 h-32 w-32 object-cover rounded-md"
-                                        />
-                                    )}
                                 </div>
 
                                 <div>
@@ -397,10 +305,10 @@ export default function ProductsPage({ params }: ProductsPageProps) {
                                 <div className="flex justify-end">
                                     <button
                                         type="submit"
-                                        disabled={isLoading}
+                                        disabled={isSubmitting}
                                         className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                                     >
-                                        {isLoading ? '保存中...' : (editingProduct ? '更新商品' : '添加商品')}
+                                        {isSubmitting ? '保存中...' : (editingProduct ? '更新商品' : '添加商品')}
                                     </button>
                                 </div>
                             </form>
@@ -422,7 +330,7 @@ export default function ProductsPage({ params }: ProductsPageProps) {
                                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                                         {product.title}
                                     </h3>
-                                    {product.price !== undefined && (
+                                    {product.price !== null && (
                                         <p className="text-green-600 dark:text-green-400 font-medium">
                                             ¥{product.price.toFixed(2)}
                                         </p>
@@ -445,7 +353,7 @@ export default function ProductsPage({ params }: ProductsPageProps) {
                                             编辑
                                         </button>
                                         <button
-                                            onClick={() => product.id && handleDelete(product.id)}
+                                            onClick={() => handleDelete(product.id)}
                                             className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                         >
                                             删除

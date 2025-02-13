@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface Message {
     id: string;
@@ -37,6 +37,7 @@ export default function CardKeyForm({ username, error }: CardKeyFormProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [cardKeyInfo, setCardKeyInfo] = useState<ValidateResponse['data']>();
     const [remainingTime, setRemainingTime] = useState<string>('');
+    const [lastMessageId, setLastMessageId] = useState<string>('');
 
     const formatRemainingTime = (expireTime: Date) => {
         const now = new Date();
@@ -55,6 +56,46 @@ export default function CardKeyForm({ username, error }: CardKeyFormProps) {
 
         return `${days}天${hours}小时${minutes}分${seconds}秒`;
     };
+
+    // 获取消息的函数
+    const fetchMessages = useCallback(async (userId: string) => {
+        try {
+            const messagesResponse = await fetch(`/api/messages/${userId}`);
+            const messagesResult = await messagesResponse.json() as MessagesResponse;
+
+            if (messagesResult.success && messagesResult.data) {
+                // 检查是否有新消息
+                const newMessages = messagesResult.data;
+                if (newMessages.length > 0) {
+                    const latestMessageId = newMessages[newMessages.length - 1].id;
+                    if (latestMessageId !== lastMessageId) {
+                        setMessages(newMessages);
+                        setLastMessageId(latestMessageId);
+                        // 如果有新消息，播放提示音
+                        const audio = new Audio('/notification.mp3');
+                        audio.play().catch(e => console.log('播放提示音失败:', e));
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('获取消息失败:', err);
+        }
+    }, [lastMessageId]);
+
+    // 设置轮询
+    useEffect(() => {
+        if (cardKeyInfo?.userId) {
+            // 立即获取一次消息
+            fetchMessages(cardKeyInfo.userId);
+
+            // 设置轮询间隔（每5秒）
+            const pollInterval = setInterval(() => {
+                fetchMessages(cardKeyInfo.userId);
+            }, 5000);
+
+            return () => clearInterval(pollInterval);
+        }
+    }, [cardKeyInfo?.userId, fetchMessages]);
 
     useEffect(() => {
         if (cardKeyInfo?.expireTime) {
@@ -95,6 +136,9 @@ export default function CardKeyForm({ username, error }: CardKeyFormProps) {
 
                 if (messagesResult.success && messagesResult.data) {
                     setMessages(messagesResult.data);
+                    if (messagesResult.data.length > 0) {
+                        setLastMessageId(messagesResult.data[messagesResult.data.length - 1].id);
+                    }
                 }
             } else {
                 setErrorMessage(result.message || '卡密验证失败');
@@ -119,6 +163,7 @@ export default function CardKeyForm({ username, error }: CardKeyFormProps) {
         setErrorMessage('');
         setCardKeyInfo(undefined);
         setMessages([]);
+        setLastMessageId('');
 
         try {
             await validateCardKey(cardKey);

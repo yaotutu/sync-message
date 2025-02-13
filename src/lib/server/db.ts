@@ -280,35 +280,74 @@ export async function updateUserConfig(
     }
 }
 
+// 商品相关类型定义
+export interface ProductInput {
+    title: string;
+    link: string;
+    imageUrl?: string | null;
+    price?: number | null;
+    description?: string | null;
+    notes?: string | null;
+}
+
+export interface ProductUpdateInput extends Partial<ProductInput> {
+    id: string;
+}
+
 // 获取用户商品列表
 export async function getUserProducts(username: string) {
     try {
         const user = await prismaClient.user.findUnique({
             where: { username },
-            include: { products: true }
+            select: {
+                id: true,
+                products: {
+                    select: {
+                        id: true,
+                        title: true,
+                        link: true,
+                        imageUrl: true,
+                        price: true,
+                        description: true,
+                        notes: true,
+                        createdAt: true,
+                        updatedAt: true
+                    },
+                    orderBy: {
+                        createdAt: 'desc'
+                    }
+                }
+            }
         });
 
         if (!user) {
             return { success: false, message: '用户不存在', data: [] };
         }
 
-        return { success: true, data: user.products };
+        return {
+            success: true,
+            message: '获取成功',
+            data: user.products
+        };
     } catch (error) {
-        console.error('获取用户商品列表失败:', error);
-        return { success: false, message: '获取用户商品列表失败', data: [] };
+        // 改进错误处理
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        console.error('获取用户商品列表失败:', errorMessage);
+
+        return {
+            success: false,
+            message: '获取商品列表失败',
+            data: []
+        };
     }
 }
 
 // 添加商品
-export async function addProduct(username: string, data: {
-    name: string;
-    description?: string;
-    price?: number;
-    imageUrl?: string;
-}) {
+export async function addProduct(username: string, data: ProductInput) {
     try {
         const user = await prismaClient.user.findUnique({
-            where: { username }
+            where: { username },
+            select: { id: true }
         });
 
         if (!user) {
@@ -317,49 +356,112 @@ export async function addProduct(username: string, data: {
 
         const product = await prismaClient.product.create({
             data: {
-                ...data,
-                userId: user.id
+                userId: user.id,
+                title: data.title,
+                link: data.link,
+                imageUrl: data.imageUrl,
+                price: data.price,
+                description: data.description,
+                notes: data.notes
             }
         });
 
-        return { success: true, message: '商品添加成功', data: product };
+        return {
+            success: true,
+            message: '添加商品成功',
+            data: product
+        };
     } catch (error) {
-        console.error('添加商品失败:', error);
-        return { success: false, message: '添加商品失败' };
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        console.error('添加商品失败:', errorMessage);
+        return {
+            success: false,
+            message: '添加商品失败'
+        };
     }
 }
 
 // 更新商品
-export async function updateProduct(productId: string, data: {
-    name?: string;
-    description?: string;
-    price?: number;
-    imageUrl?: string;
-}) {
+export async function updateProduct(username: string, data: ProductUpdateInput) {
     try {
-        const product = await prismaClient.product.update({
-            where: { id: productId },
-            data
+        // 首先验证商品是否属于该用户
+        const product = await prismaClient.product.findFirst({
+            where: {
+                id: data.id,
+                user: {
+                    username
+                }
+            }
         });
 
-        return { success: true, message: '商品更新成功', data: product };
+        if (!product) {
+            return {
+                success: false,
+                message: '商品不存在或无权限修改'
+            };
+        }
+
+        const updatedProduct = await prismaClient.product.update({
+            where: { id: data.id },
+            data: {
+                title: data.title,
+                link: data.link,
+                imageUrl: data.imageUrl,
+                price: data.price,
+                description: data.description,
+                notes: data.notes
+            }
+        });
+
+        return {
+            success: true,
+            message: '更新商品成功',
+            data: updatedProduct
+        };
     } catch (error) {
-        console.error('更新商品失败:', error);
-        return { success: false, message: '更新商品失败' };
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
+        console.error('更新商品失败:', errorMessage);
+        return {
+            success: false,
+            message: '更新商品失败'
+        };
     }
 }
 
 // 删除商品
-export async function deleteProduct(productId: string) {
+export async function deleteProduct(username: string, productId: string) {
     try {
+        // 首先验证商品是否属于该用户
+        const product = await prismaClient.product.findFirst({
+            where: {
+                id: productId,
+                user: {
+                    username
+                }
+            }
+        });
+
+        if (!product) {
+            return {
+                success: false,
+                message: '商品不存在或无权限删除'
+            };
+        }
+
         await prismaClient.product.delete({
             where: { id: productId }
         });
 
-        return { success: true, message: '商品删除成功' };
+        return {
+            success: true,
+            message: '删除商品成功'
+        };
     } catch (error) {
         console.error('删除商品失败:', error);
-        return { success: false, message: '删除商品失败' };
+        return {
+            success: false,
+            message: '删除商品失败'
+        };
     }
 }
 
