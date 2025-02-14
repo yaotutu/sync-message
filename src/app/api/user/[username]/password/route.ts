@@ -16,7 +16,10 @@ export async function POST(
         }
 
         // 验证token
-        const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
+        const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
+        if (!secret) {
+            return NextResponse.json({ success: false, message: '系统配置错误' });
+        }
         const { payload } = await jwtVerify(token, secret);
 
         if (payload.username !== params.username) {

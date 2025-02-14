@@ -3,9 +3,18 @@ export interface CardKey {
     key: string;
     userId: string;
     used: boolean;
-    usedAt: Date | null;
-    createdAt: Date;
-    updatedAt: Date;
+    usedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+    metadata?: {
+        phone?: string;
+        appName?: string;
+        linkParams: {
+            includePhone: boolean;
+            includeAppName: boolean;
+        };
+    };
+    shareUrl?: string;
 }
 
 export type CardKeyStatus = 'all' | 'used' | 'unused'; 

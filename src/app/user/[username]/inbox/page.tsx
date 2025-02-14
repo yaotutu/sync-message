@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { use } from 'react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { messageService } from '@/lib/api/services';
 
 interface Message {
     id: string;
@@ -26,12 +27,12 @@ export default function InboxPage({ params }: InboxPageProps) {
         async function fetchMessages() {
             try {
                 setError(null);
-                const response = await fetch(`/api/messages/${username}`);
-                if (!response.ok) {
-                    throw new Error('获取消息失败');
+                const response = await messageService.getMessages(username);
+                if (response.success) {
+                    setMessages(response.data?.messages || []);
+                } else {
+                    throw new Error(response.message || '获取消息失败');
                 }
-                const data = await response.json();
-                setMessages(data.messages || []);
             } catch (error) {
                 console.error('获取消息失败:', error);
                 setError(error instanceof Error ? error.message : '获取消息失败');

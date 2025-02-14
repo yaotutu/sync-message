@@ -76,6 +76,7 @@ model CardKey {
   user      User      @relation(fields: [userId], references: [id])
   used      Boolean   @default(false)
   usedAt    DateTime?
+  metadata  Json?     // 添加元数据字段，用于存储生成类型、手机号等信息
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 

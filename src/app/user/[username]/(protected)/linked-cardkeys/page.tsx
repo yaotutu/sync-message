@@ -8,28 +8,46 @@ import { CardKey } from '@/types/cardKey';
 import { copyToClipboard } from '@/lib/utils/clipboard';
 import { cardKeyService } from '@/lib/api/services';
 
-interface CardKeysPageProps {
+interface LinkedCardKeysPageProps {
     params: Promise<{ username: string }>;
 }
 
-interface CardKeyFormData {
-    count: number;
-}
+const APP_OPTIONS = [
+    { value: 'jianying', label: '剪映' },
+    { value: 'douyin', label: '抖音' },
+    { value: 'other', label: '其他' },
+];
 
 type FilterStatus = 'all' | 'used' | 'unused';
 
-export default function CardKeysPage({ params }: CardKeysPageProps) {
+interface FormData {
+    count: number;
+    phone?: string;
+    appName: string;
+    linkParams: {
+        includePhone: boolean;
+        includeAppName: boolean;
+    };
+}
+
+export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) {
     const { username } = use(params);
     const router = useRouter();
     const [cardKeys, setCardKeys] = useState<CardKey[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
-    const [formData, setFormData] = useState<CardKeyFormData>({
-        count: 1
+    const [formData, setFormData] = useState<FormData>({
+        count: 1,
+        phone: '',
+        appName: 'jianying',
+        linkParams: {
+            includePhone: false,
+            includeAppName: false,
+        }
     });
 
-    // 状态管理
+    // 新增状态
     const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -39,9 +57,9 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
         try {
             const response = await cardKeyService.getCardKeys(username);
             if (response.success) {
-                // 只显示普通卡密
-                const simpleCardKeys = (response.data || []).filter(key => !key.metadata);
-                setCardKeys(simpleCardKeys);
+                // 只过滤出带链接的卡密
+                const linkedCardKeys = (response.data || []).filter(key => key.metadata);
+                setCardKeys(linkedCardKeys);
                 setError(null);
             } else {
                 setError(response.message || '获取卡密列表失败');
@@ -56,18 +74,23 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
         }
     };
 
-    const generateSimpleCardKeys = async () => {
+    const generateLinkedCardKeys = async () => {
         if (generating) return;
 
         try {
             setGenerating(true);
             setError(null);
 
-            const response = await cardKeyService.generateCardKeys(username, formData.count);
+            const response = await cardKeyService.generateCardKeysWithLink(username, {
+                count: formData.count,
+                phone: formData.phone,
+                appName: formData.appName,
+                linkParams: formData.linkParams
+            });
 
             if (response.success) {
                 await fetchCardKeys();
-                setError(`成功生成 ${formData.count} 个卡密`);
+                setError(`成功生成 ${formData.count} 个带链接卡密`);
                 setTimeout(() => setError(null), 3000);
             } else {
                 setError(response.message || '生成卡密失败');
@@ -82,28 +105,18 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
         }
     };
 
-    const handleCopy = (text: string) => {
-        if (copyToClipboard(text)) {
+    const handleCopy = (cardKey: CardKey) => {
+        const baseUrl = window.location.origin;
+        const params = new URLSearchParams({
+            cardkey: cardKey.key,
+            username,
+            ...(cardKey.metadata?.phone ? { t: cardKey.metadata.phone } : {}),
+            ...(cardKey.metadata?.appName ? { appname: cardKey.metadata.appName } : {})
+        });
+        const fullUrl = `@${baseUrl}/user/message?${params.toString()}`;
+
+        if (copyToClipboard(fullUrl)) {
             setError('复制成功');
-            setTimeout(() => setError(null), 2000);
-        } else {
-            setError('复制失败，请手动复制');
-        }
-    };
-
-    const copyAllUnusedKeys = () => {
-        const unusedKeys = cardKeys
-            .filter(key => !key.usedAt)
-            .map(key => key.key)
-            .join('\n');
-
-        if (!unusedKeys) {
-            setError('没有未使用的卡密可复制');
-            return;
-        }
-
-        if (copyToClipboard(unusedKeys)) {
-            setError('已复制所有未使用的卡密');
             setTimeout(() => setError(null), 2000);
         } else {
             setError('复制失败，请手动复制');
@@ -149,8 +162,6 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
         currentPage * itemsPerPage
     );
 
-    const unusedCount = cardKeys.filter(key => !key.usedAt).length;
-
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <nav className="bg-white dark:bg-gray-800 shadow">
@@ -158,15 +169,15 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                     <div className="flex justify-between h-16">
                         <div className="flex items-center">
                             <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-                                普通卡密管理 - {username}
+                                带链接卡密管理 - {username}
                             </h1>
                         </div>
                         <div className="flex items-center space-x-4">
                             <button
-                                onClick={() => router.push(`/user/${username}/linked-cardkeys`)}
+                                onClick={() => router.push(`/user/${username}/cardkeys`)}
                                 className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                             >
-                                带链接卡密
+                                普通卡密
                             </button>
                             <button
                                 onClick={() => router.push(`/user/${username}`)}
@@ -184,32 +195,103 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
                         {/* 生成卡密控制面板 */}
                         <div className="mb-8 border-b pb-6">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">生成卡密</h3>
-                            <div className="flex items-end gap-4">
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                        生成数量
-                                    </label>
-                                    <select
-                                        value={formData.count}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, count: Number(e.target.value) }))}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                    >
-                                        {[1, 5, 10, 20, 50, 100].map(num => (
-                                            <option key={num} value={num}>{num}</option>
-                                        ))}
-                                    </select>
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">生成带链接卡密</h3>
+                            <div className="space-y-4">
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            生成数量
+                                        </label>
+                                        <select
+                                            value={formData.count}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, count: Number(e.target.value) }))}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        >
+                                            {[1, 5, 10, 20, 50, 100].map(num => (
+                                                <option key={num} value={num}>{num}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            应用名称
+                                        </label>
+                                        <select
+                                            value={formData.appName}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, appName: e.target.value }))}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        >
+                                            {APP_OPTIONS.map(option => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={generateSimpleCardKeys}
-                                    disabled={generating}
-                                    className={`px-4 py-2 rounded-md text-white transition-colors ${generating
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-blue-600 hover:bg-blue-700'
-                                        }`}
-                                >
-                                    {generating ? '生成中...' : '生成卡密'}
-                                </button>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-center">
+                                        <input
+                                            type="checkbox"
+                                            id="includePhone"
+                                            checked={formData.linkParams.includePhone}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                linkParams: {
+                                                    ...prev.linkParams,
+                                                    includePhone: e.target.checked
+                                                }
+                                            }))}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <label htmlFor="includePhone" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                            包含手机号
+                                        </label>
+                                    </div>
+
+                                    {formData.linkParams.includePhone && (
+                                        <input
+                                            type="tel"
+                                            value={formData.phone || ''}
+                                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                            placeholder="请输入手机号"
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                        />
+                                    )}
+
+                                    <div className="flex items-center mt-2">
+                                        <input
+                                            type="checkbox"
+                                            id="includeAppName"
+                                            checked={formData.linkParams.includeAppName}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                linkParams: {
+                                                    ...prev.linkParams,
+                                                    includeAppName: e.target.checked
+                                                }
+                                            }))}
+                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                        />
+                                        <label htmlFor="includeAppName" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                            包含应用名称
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={generateLinkedCardKeys}
+                                        disabled={generating}
+                                        className={`px-4 py-2 rounded-md text-white transition-colors ${generating
+                                            ? 'bg-gray-400 cursor-not-allowed'
+                                            : 'bg-blue-600 hover:bg-blue-700'
+                                            }`}
+                                    >
+                                        {generating ? '生成中...' : '生成带链接卡密'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -269,7 +351,7 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                             {paginatedCardKeys.map((cardKey) => (
                                 <div
                                     key={cardKey.id}
-                                    className="p-4 border dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+                                    className="p-4 border dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow bg-blue-50 dark:bg-blue-900/20"
                                 >
                                     <div className="flex justify-between items-start">
                                         <div className="flex-1">
@@ -284,14 +366,33 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                                                     使用时间: {new Date(cardKey.usedAt).toLocaleString()}
                                                 </div>
                                             )}
+                                            {cardKey.metadata && (
+                                                <div className="mt-2 space-y-1">
+                                                    {cardKey.metadata.phone && (
+                                                        <div className="text-sm text-gray-600 dark:text-gray-300">
+                                                            手机号: {cardKey.metadata.phone}
+                                                        </div>
+                                                    )}
+                                                    {cardKey.metadata.appName && (
+                                                        <div className="text-sm text-gray-600 dark:text-gray-300">
+                                                            应用: {APP_OPTIONS.find(opt => opt.value === cardKey.metadata?.appName)?.label || cardKey.metadata.appName}
+                                                        </div>
+                                                    )}
+                                                    <div className="mt-2 font-mono text-xs text-gray-500 dark:text-gray-400 break-all">
+                                                        {`@${window.location.origin}/user/message?cardkey=${cardKey.key}&username=${username}${cardKey.metadata.phone ? `&t=${cardKey.metadata.phone}` : ''}${cardKey.metadata.appName ? `&appname=${cardKey.metadata.appName}` : ''}`}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                         {!cardKey.usedAt && (
-                                            <button
-                                                onClick={() => handleCopy(cardKey.key)}
-                                                className="ml-4 px-3 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
-                                            >
-                                                复制卡密
-                                            </button>
+                                            <div className="ml-4">
+                                                <button
+                                                    onClick={() => handleCopy(cardKey)}
+                                                    className="px-3 py-1 text-sm rounded border border-blue-300 dark:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-colors text-blue-600 dark:text-blue-300"
+                                                >
+                                                    复制链接
+                                                </button>
+                                            </div>
                                         )}
                                     </div>
                                 </div>

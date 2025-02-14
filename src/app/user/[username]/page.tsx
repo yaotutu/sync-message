@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { use } from 'react';
 import ContactModal from '@/components/ContactModal';
+import { authService } from '@/lib/api/services';
 
 interface UserPageProps {
     params: Promise<{ username: string }>;
@@ -20,9 +21,8 @@ export default function UserPage({ params }: UserPageProps) {
 
     const checkLoginStatus = useCallback(async () => {
         try {
-            const response = await fetch(`/api/user/${username}/verify`);
-            const data = await response.json();
-            setIsLoggedIn(data.success);
+            const response = await authService.verifyLoginStatus(username);
+            setIsLoggedIn(response.success);
         } catch (error) {
             console.error('验证登录状态失败:', error);
             setIsLoggedIn(false);
@@ -30,6 +30,16 @@ export default function UserPage({ params }: UserPageProps) {
             setIsLoading(false);
         }
     }, [username]);
+
+    const handleLogout = async () => {
+        try {
+            await authService.logout(username);
+            setIsLoggedIn(false);
+            router.refresh();
+        } catch (error) {
+            console.error('退出登录失败:', error);
+        }
+    };
 
     useEffect(() => {
         checkLoginStatus();
@@ -65,11 +75,7 @@ export default function UserPage({ params }: UserPageProps) {
                         </div>
                         <div className="flex items-center">
                             <button
-                                onClick={async () => {
-                                    await fetch(`/api/user/${username}/logout`, { method: 'POST' });
-                                    setIsLoggedIn(false);
-                                    router.refresh();
-                                }}
+                                onClick={handleLogout}
                                 className="ml-4 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                             >
                                 退出登录
@@ -153,10 +159,26 @@ export default function UserPage({ params }: UserPageProps) {
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-transparent dark:from-purple-900/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="relative p-5 sm:p-6">
                                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                    卡密管理
+                                    普通卡密
                                 </h2>
                                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                                    管理您的卡密生成和使用记录
+                                    管理普通卡密的生成和使用记录
+                                </p>
+                            </div>
+                        </Link>
+
+                        {/* 带链接卡密管理卡片 */}
+                        <Link
+                            href={`/user/${username}/linked-cardkeys`}
+                            className="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md dark:shadow-gray-900/30 transition-all duration-200"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-transparent dark:from-indigo-900/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative p-5 sm:p-6">
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                    带链接卡密
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                    管理带分享链接的卡密生成和使用
                                 </p>
                             </div>
                         </Link>
