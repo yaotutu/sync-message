@@ -4,11 +4,11 @@ import React from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { CardKey } from '@/types/cardKey';
+import { SimpleCardKey } from '@/types/cardKey';
 import { copyToClipboard } from '@/lib/utils/clipboard';
-import { cardKeyService } from '@/lib/api/services';
+import { simpleCardKeyService } from '@/lib/api/services';
 
-interface CardKeysPageProps {
+interface SimpleCardKeysPageProps {
     params: Promise<{ username: string }>;
 }
 
@@ -18,10 +18,10 @@ interface CardKeyFormData {
 
 type FilterStatus = 'all' | 'used' | 'unused';
 
-export default function CardKeysPage({ params }: CardKeysPageProps) {
+export default function SimpleCardKeysPage({ params }: SimpleCardKeysPageProps) {
     const { username } = use(params);
     const router = useRouter();
-    const [cardKeys, setCardKeys] = useState<CardKey[]>([]);
+    const [cardKeys, setCardKeys] = useState<SimpleCardKey[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
@@ -37,11 +37,9 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
 
     const fetchCardKeys = async () => {
         try {
-            const response = await cardKeyService.getCardKeys(username);
+            const response = await simpleCardKeyService.getCardKeys(username);
             if (response.success) {
-                // 只显示普通卡密
-                const simpleCardKeys = (response.data || []).filter(key => !key.metadata);
-                setCardKeys(simpleCardKeys);
+                setCardKeys(response.data || []);
                 setError(null);
             } else {
                 setError(response.message || '获取卡密列表失败');
@@ -56,14 +54,14 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
         }
     };
 
-    const generateSimpleCardKeys = async () => {
+    const generateCardKeys = async () => {
         if (generating) return;
 
         try {
             setGenerating(true);
             setError(null);
 
-            const response = await cardKeyService.generateCardKeys(username, formData.count);
+            const response = await simpleCardKeyService.generateCardKeys(username, formData.count);
 
             if (response.success) {
                 await fetchCardKeys();
@@ -201,7 +199,7 @@ export default function CardKeysPage({ params }: CardKeysPageProps) {
                                     </select>
                                 </div>
                                 <button
-                                    onClick={generateSimpleCardKeys}
+                                    onClick={generateCardKeys}
                                     disabled={generating}
                                     className={`px-4 py-2 rounded-md text-white transition-colors ${generating
                                         ? 'bg-gray-400 cursor-not-allowed'

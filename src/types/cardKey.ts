@@ -1,7 +1,21 @@
-export interface CardKey {
+// 普通卡密类型
+export interface SimpleCardKey {
     id: string;
     key: string;
     userId: string;
+    used: boolean;
+    usedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// 带链接卡密类型
+export interface LinkedCardKey {
+    id: string;
+    key: string;
+    userId: string;
+    phone?: string;
+    appName?: string;
     used: boolean;
     usedAt: string | null;
     createdAt: string;
@@ -14,7 +28,6 @@ export interface CardKey {
             includeAppName: boolean;
         };
     };
-    shareUrl?: string;
 }
 
 export type CardKeyStatus = 'all' | 'used' | 'unused'; 

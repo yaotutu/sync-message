@@ -153,7 +153,7 @@ export default function UserPage({ params }: UserPageProps) {
 
                         {/* 卡密管理卡片 */}
                         <Link
-                            href={`/user/${username}/cardkeys`}
+                            href={`/user/${username}/simple-cardkeys`}
                             className="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md dark:shadow-gray-900/30 transition-all duration-200"
                         >
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-transparent dark:from-purple-900/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

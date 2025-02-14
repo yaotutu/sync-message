@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { CardKey } from '@/types/cardKey';
+import { SimpleCardKey, LinkedCardKey } from '@/types/cardKey';
 
 interface CardKeyGenerateParams {
     count: number;
@@ -17,34 +17,42 @@ interface VerifyCardKeyParams {
     phone?: string;
 }
 
-export const cardKeyService = {
-    // 获取卡密列表
+// 普通卡密服务
+export const simpleCardKeyService = {
+    // 获取普通卡密列表
     getCardKeys: (username: string) =>
-        apiClient.get<CardKey[]>(`/api/user/${username}/cardkeys`),
+        apiClient.get<SimpleCardKey[]>(`/api/user/${username}/simple-cardkeys`),
 
-    // 生成简单卡密
+    // 生成普通卡密
     generateCardKeys: (username: string, count: number) =>
-        apiClient.post<CardKey[]>(`/api/user/${username}/cardkeys/generate`, { count }, {
+        apiClient.post<SimpleCardKey[]>(`/api/user/${username}/simple-cardkeys/generate`, { count }, {
             showSuccess: true
         }),
 
-    // 生成带链接的卡密
-    generateCardKeysWithLink: (username: string, params: {
+    // 验证普通卡密
+    verifyCardKey: (username: string, cardKey: string) =>
+        apiClient.post(`/api/user/${username}/simple-cardkeys/verify`, { cardKey }),
+};
+
+// 带链接卡密服务
+export const linkedCardKeyService = {
+    // 获取带链接卡密列表
+    getCardKeys: (username: string) =>
+        apiClient.get<LinkedCardKey[]>(`/api/user/${username}/linked-cardkeys`),
+
+    // 生成带链接卡密
+    generateCardKeys: (username: string, params: {
         count: number;
         phone?: string;
         appName?: string;
-        linkParams: {
-            includePhone: boolean;
-            includeAppName: boolean;
-        };
     }) =>
-        apiClient.post<CardKey[]>(`/api/user/${username}/cardkeys/generate-with-link`, params, {
+        apiClient.post<LinkedCardKey[]>(`/api/user/${username}/linked-cardkeys/generate`, params, {
             showSuccess: true
         }),
 
-    // 验证卡密
-    verifyCardKey: (username: string, params: VerifyCardKeyParams) =>
-        apiClient.post(`/api/user/${username}/verify-card`, params),
+    // 验证带链接卡密
+    verifyCardKey: (username: string, params: { cardKey: string; phone?: string }) =>
+        apiClient.post(`/api/user/${username}/linked-cardkeys/verify`, params),
 };
 
 export const authService = {

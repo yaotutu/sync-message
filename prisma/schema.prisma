@@ -24,16 +24,17 @@ model Admin {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  username  String    @unique
-  password  String
-  webhookKey String   @unique @default(uuid())
-  cardKeys  CardKey[]
-  products  Product[]
-  config    UserConfig?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  messages  Message[]
+  id              String          @id @default(cuid())
+  username        String          @unique
+  password        String
+  webhookKey      String          @unique @default(uuid())
+  simpleCardKeys  SimpleCardKey[]
+  linkedCardKeys  LinkedCardKey[]
+  products        Product[]
+  config          UserConfig?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  messages        Message[]
 
   @@map("users")
 }
@@ -69,18 +70,34 @@ model UserConfig {
   @@map("user_configs")
 }
 
-model CardKey {
-  id        String    @id @default(cuid())
-  key       String    @unique
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  used      Boolean   @default(false)
-  usedAt    DateTime?
-  metadata  Json?     // 添加元数据字段，用于存储生成类型、手机号等信息
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model SimpleCardKey {
+    id        String    @id @default(cuid())
+    key       String    @unique
+    userId    String
+    user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    used      Boolean   @default(false)
+    usedAt    DateTime?
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
 
-  @@map("card_keys")
+    @@map("simple_card_keys")
+    @@index([userId])
+}
+
+model LinkedCardKey {
+    id          String    @id @default(cuid())
+    key         String    @unique
+    userId      String
+    user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    phone       String?   // 手机号
+    appName     String?   // 应用名称
+    used        Boolean   @default(false)
+    usedAt      DateTime?
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+
+    @@map("linked_card_keys")
+    @@index([userId])
 }
 
 model Message {

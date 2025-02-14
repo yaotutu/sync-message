@@ -4,9 +4,9 @@ import React from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { CardKey } from '@/types/cardKey';
+import { LinkedCardKey } from '@/types/cardKey';
 import { copyToClipboard } from '@/lib/utils/clipboard';
-import { cardKeyService } from '@/lib/api/services';
+import { linkedCardKeyService } from '@/lib/api/services';
 
 interface LinkedCardKeysPageProps {
     params: Promise<{ username: string }>;
@@ -33,7 +33,7 @@ interface FormData {
 export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) {
     const { username } = use(params);
     const router = useRouter();
-    const [cardKeys, setCardKeys] = useState<CardKey[]>([]);
+    const [cardKeys, setCardKeys] = useState<LinkedCardKey[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
@@ -55,11 +55,9 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
 
     const fetchCardKeys = async () => {
         try {
-            const response = await cardKeyService.getCardKeys(username);
+            const response = await linkedCardKeyService.getCardKeys(username);
             if (response.success) {
-                // 只过滤出带链接的卡密
-                const linkedCardKeys = (response.data || []).filter(key => key.metadata);
-                setCardKeys(linkedCardKeys);
+                setCardKeys(response.data || []);
                 setError(null);
             } else {
                 setError(response.message || '获取卡密列表失败');
@@ -81,11 +79,10 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
             setGenerating(true);
             setError(null);
 
-            const response = await cardKeyService.generateCardKeysWithLink(username, {
+            const response = await linkedCardKeyService.generateCardKeys(username, {
                 count: formData.count,
                 phone: formData.phone,
-                appName: formData.appName,
-                linkParams: formData.linkParams
+                appName: formData.appName
             });
 
             if (response.success) {
@@ -105,15 +102,14 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
         }
     };
 
-    const handleCopy = (cardKey: CardKey) => {
+    const handleCopy = (cardKey: LinkedCardKey) => {
         const baseUrl = window.location.origin;
         const params = new URLSearchParams({
             cardkey: cardKey.key,
-            username,
-            ...(cardKey.metadata?.phone ? { t: cardKey.metadata.phone } : {}),
-            ...(cardKey.metadata?.appName ? { appname: cardKey.metadata.appName } : {})
+            ...(cardKey.phone ? { t: cardKey.phone } : {}),
+            ...(cardKey.appName ? { appname: cardKey.appName } : {})
         });
-        const fullUrl = `@${baseUrl}/user/message?${params.toString()}`;
+        const fullUrl = `${baseUrl}/user/${username}/message?${params.toString()}`;
 
         if (copyToClipboard(fullUrl)) {
             setError('复制成功');
@@ -379,7 +375,7 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                                                         </div>
                                                     )}
                                                     <div className="mt-2 font-mono text-xs text-gray-500 dark:text-gray-400 break-all">
-                                                        {`@${window.location.origin}/user/message?cardkey=${cardKey.key}&username=${username}${cardKey.metadata.phone ? `&t=${cardKey.metadata.phone}` : ''}${cardKey.metadata.appName ? `&appname=${cardKey.metadata.appName}` : ''}`}
+                                                        {`@${window.location.origin}/user/${username}/message?cardkey=${cardKey.key}${cardKey.phone ? `&t=${cardKey.phone}` : ''}${cardKey.appName ? `&appname=${cardKey.appName}` : ''}`}
                                                     </div>
                                                 </div>
                                             )}
