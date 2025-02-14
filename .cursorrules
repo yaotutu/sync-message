@@ -54,6 +54,11 @@
     5. **Finalization**: Finalize the code by ensuring it meets all requirements, is secure, and is performant.
     
 
+    ### 项目需要实现的功能
+    1.前端页面需要始终适配移动端
+    2.前端页面需要始终适配暗黑模式
+
+
 以下是项目核心功能和工作流程的详细描述：
 
 ## 系统概述

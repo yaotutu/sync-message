@@ -113,6 +113,22 @@ export default function UserPage({ params }: UserPageProps) {
                             </div>
                         </Link>
 
+                        {/* 消息记录卡片 */}
+                        <Link
+                            href={`/user/${username}/inbox`}
+                            className="group relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md dark:shadow-gray-900/30 transition-all duration-200"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-transparent dark:from-yellow-900/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative p-5 sm:p-6">
+                                <h2 className="text-xl font-semibold text-gray-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">
+                                    消息记录
+                                </h2>
+                                <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                    查看所有历史消息记录
+                                </p>
+                            </div>
+                        </Link>
+
                         {/* 商品管理卡片 */}
                         <Link
                             href={`/user/${username}/products`}
