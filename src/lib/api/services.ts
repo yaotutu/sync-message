@@ -3,9 +3,8 @@ import { SimpleCardKey, LinkedCardKey } from '@/types/cardKey';
 
 interface CardKeyGenerateParams {
     count: number;
-    phone?: string;
+    phones?: string[];
     appName?: string;
-    generateType: 'simple' | 'withLink';
     linkParams: {
         includePhone: boolean;
         includeAppName: boolean;
@@ -43,8 +42,12 @@ export const linkedCardKeyService = {
     // 生成带链接卡密
     generateCardKeys: (username: string, params: {
         count: number;
-        phone?: string;
+        phones?: string[];
         appName?: string;
+        linkParams: {
+            includePhone: boolean;
+            includeAppName: boolean;
+        };
     }) =>
         apiClient.post<LinkedCardKey[]>(`/api/user/${username}/linked-cardkeys/generate`, params, {
             showSuccess: true

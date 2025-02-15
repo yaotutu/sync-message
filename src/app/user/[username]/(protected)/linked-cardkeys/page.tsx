@@ -22,7 +22,7 @@ type FilterStatus = 'all' | 'used' | 'unused';
 
 interface FormData {
     count: number;
-    phone?: string;
+    phones: string[];
     appName: string;
     linkParams: {
         includePhone: boolean;
@@ -39,7 +39,7 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
     const [generating, setGenerating] = useState(false);
     const [formData, setFormData] = useState<FormData>({
         count: 1,
-        phone: '',
+        phones: [''],
         appName: 'jianying',
         linkParams: {
             includePhone: false,
@@ -79,10 +79,19 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
             setGenerating(true);
             setError(null);
 
+            // 过滤掉空的手机号
+            const validPhones = formData.phones.filter(phone => phone.trim() !== '');
+
+            if (formData.linkParams.includePhone && validPhones.length === 0) {
+                setError('请至少输入一个手机号');
+                return;
+            }
+
             const response = await linkedCardKeyService.generateCardKeys(username, {
                 count: formData.count,
-                phone: formData.phone,
-                appName: formData.appName
+                phones: validPhones,
+                appName: formData.appName,
+                linkParams: formData.linkParams
             });
 
             if (response.success) {
@@ -102,7 +111,31 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
         }
     };
 
-    const handleCopy = (cardKey: LinkedCardKey) => {
+    // 添加手机号输入框
+    const addPhoneInput = () => {
+        setFormData(prev => ({
+            ...prev,
+            phones: [...prev.phones, '']
+        }));
+    };
+
+    // 删除手机号输入框
+    const removePhoneInput = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            phones: prev.phones.filter((_, i) => i !== index)
+        }));
+    };
+
+    // 更新手机号
+    const updatePhone = (index: number, value: string) => {
+        setFormData(prev => ({
+            ...prev,
+            phones: prev.phones.map((phone, i) => i === index ? value : phone)
+        }));
+    };
+
+    const handleCopy = (cardKey: LinkedCardKey, type: 'link' | 'key') => {
         const baseUrl = window.location.origin;
         const params = new URLSearchParams({
             cardkey: cardKey.key,
@@ -247,13 +280,33 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                                     </div>
 
                                     {formData.linkParams.includePhone && (
-                                        <input
-                                            type="tel"
-                                            value={formData.phone || ''}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                                            placeholder="请输入手机号"
-                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                        />
+                                        <div className="space-y-2">
+                                            {formData.phones.map((phone, index) => (
+                                                <div key={index} className="flex gap-2">
+                                                    <input
+                                                        type="tel"
+                                                        value={phone}
+                                                        onChange={(e) => updatePhone(index, e.target.value)}
+                                                        placeholder={`请输入第 ${index + 1} 个手机号`}
+                                                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removePhoneInput(index)}
+                                                        className="px-2 py-1 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                                    >
+                                                        删除
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                onClick={addPhoneInput}
+                                                className="mt-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                                            >
+                                                + 添加手机号
+                                            </button>
+                                        </div>
                                     )}
 
                                     <div className="flex items-center mt-2">
@@ -347,49 +400,85 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                             {paginatedCardKeys.map((cardKey) => (
                                 <div
                                     key={cardKey.id}
-                                    className="p-4 border dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow bg-blue-50 dark:bg-blue-900/20"
+                                    className="p-6 border dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
                                 >
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <div className="font-mono text-sm mb-2 break-all text-gray-900 dark:text-gray-100">
-                                                {cardKey.key}
-                                            </div>
-                                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                创建时间: {new Date(cardKey.createdAt).toLocaleString()}
-                                            </div>
-                                            {cardKey.usedAt && (
-                                                <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                    使用时间: {new Date(cardKey.usedAt).toLocaleString()}
-                                                </div>
-                                            )}
-                                            {cardKey.metadata && (
-                                                <div className="mt-2 space-y-1">
-                                                    {cardKey.metadata.phone && (
-                                                        <div className="text-sm text-gray-600 dark:text-gray-300">
-                                                            手机号: {cardKey.metadata.phone}
-                                                        </div>
-                                                    )}
-                                                    {cardKey.metadata.appName && (
-                                                        <div className="text-sm text-gray-600 dark:text-gray-300">
-                                                            应用: {APP_OPTIONS.find(opt => opt.value === cardKey.metadata?.appName)?.label || cardKey.metadata.appName}
-                                                        </div>
-                                                    )}
-                                                    <div className="mt-2 font-mono text-xs text-gray-500 dark:text-gray-400 break-all">
-                                                        {`@${window.location.origin}/user/${username}/message?cardkey=${cardKey.key}${cardKey.phone ? `&t=${cardKey.phone}` : ''}${cardKey.appName ? `&appname=${cardKey.appName}` : ''}`}
-                                                    </div>
-                                                </div>
-                                            )}
+                                    <div className="space-y-4">
+                                        {/* 状态标签和时间 */}
+                                        <div className="flex justify-between items-center">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${cardKey.usedAt
+                                                    ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                                    : 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300'
+                                                }`}>
+                                                {cardKey.usedAt ? '已使用' : '未使用'}
+                                            </span>
+                                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                                                创建于 {new Date(cardKey.createdAt).toLocaleString()}
+                                            </span>
                                         </div>
-                                        {!cardKey.usedAt && (
-                                            <div className="ml-4">
-                                                <button
-                                                    onClick={() => handleCopy(cardKey)}
-                                                    className="px-3 py-1 text-sm rounded border border-blue-300 dark:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/50 transition-colors text-blue-600 dark:text-blue-300"
-                                                >
-                                                    复制链接
-                                                </button>
+
+                                        {/* 链接展示区域 */}
+                                        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">分享链接</span>
+                                                {!cardKey.usedAt && (
+                                                    <button
+                                                        onClick={() => handleCopy(cardKey, 'link')}
+                                                        className="px-3 py-1 text-sm rounded-md bg-blue-500 hover:bg-blue-600 text-white transition-colors"
+                                                    >
+                                                        复制链接
+                                                    </button>
+                                                )}
                                             </div>
-                                        )}
+                                            <div className="font-mono text-sm break-all text-gray-800 dark:text-gray-200">
+                                                {`${window.location.origin}/user/${username}/message?cardkey=${cardKey.key}${cardKey.phone ? `&t=${cardKey.phone}` : ''}${cardKey.appName ? `&appname=${cardKey.appName}` : ''}`}
+                                            </div>
+                                        </div>
+
+                                        {/* 卡密和应用信息 */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t dark:border-gray-700">
+                                            <div className="space-y-2">
+                                                <div className="text-sm text-gray-500 dark:text-gray-400">卡密</div>
+                                                <div className="flex items-center justify-between">
+                                                    <div className="font-mono text-sm text-gray-800 dark:text-gray-200">
+                                                        {cardKey.key}
+                                                    </div>
+                                                    {!cardKey.usedAt && (
+                                                        <button
+                                                            onClick={() => handleCopy(cardKey, 'key')}
+                                                            className="px-3 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                                        >
+                                                            复制卡密
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {cardKey.phone && (
+                                                    <div>
+                                                        <div className="text-sm text-gray-500 dark:text-gray-400">手机号</div>
+                                                        <div className="font-mono text-sm text-gray-800 dark:text-gray-200">
+                                                            {cardKey.phone}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {cardKey.appName && (
+                                                    <div>
+                                                        <div className="text-sm text-gray-500 dark:text-gray-400">应用</div>
+                                                        <div className="text-sm text-gray-800 dark:text-gray-200">
+                                                            {APP_OPTIONS.find(opt => opt.value === cardKey.appName)?.label || cardKey.appName}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {cardKey.usedAt && (
+                                                    <div>
+                                                        <div className="text-sm text-gray-500 dark:text-gray-400">使用时间</div>
+                                                        <div className="text-sm text-gray-800 dark:text-gray-200">
+                                                            {new Date(cardKey.usedAt).toLocaleString()}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

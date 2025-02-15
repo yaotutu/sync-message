@@ -69,17 +69,19 @@ export async function POST(
         }
 
         const body = await request.json();
-        const { count = 1, phone = '', appName = '' } = body;
+        const { count = 1, phones = [], appName = '', linkParams = {} } = body;
 
         // 生成带链接卡密
         const cardKeys = await Promise.all(
-            Array.from({ length: count }, async () => {
+            Array.from({ length: count }, async (_, index) => {
                 const key = nanoid(8);
+                const phone = phones.length > 0 ? phones[index % phones.length] : undefined;
+
                 return prisma.linkedCardKey.create({
                     data: {
                         key,
-                        phone: phone || undefined,
-                        appName: appName || undefined,
+                        phone: linkParams.includePhone ? phone : undefined,
+                        appName: linkParams.includeAppName ? appName : undefined,
                         user: {
                             connect: {
                                 id: user.id
