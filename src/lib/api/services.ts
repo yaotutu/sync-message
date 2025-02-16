@@ -56,6 +56,12 @@ export const linkedCardKeyService = {
     // 验证带链接卡密
     verifyCardKey: (username: string, params: { cardKey: string; phone?: string }) =>
         apiClient.post(`/api/user/${username}/linked-cardkeys/verify`, params),
+
+    // 删除所有卡密
+    deleteAllCardKeys: (username: string) =>
+        apiClient.delete(`/api/user/${username}/linked-cardkeys/all`, {
+            showSuccess: true
+        }),
 };
 
 export const authService = {

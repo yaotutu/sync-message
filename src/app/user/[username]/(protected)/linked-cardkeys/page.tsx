@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react';
 import { LinkedCardKey } from '@/types/cardKey';
 import { copyToClipboard } from '@/lib/utils/clipboard';
 import { linkedCardKeyService } from '@/lib/api/services';
+import { Dialog, Transition } from '@headlessui/react';
+import { Fragment } from 'react';
 
 interface LinkedCardKeysPageProps {
     params: Promise<{ username: string }>;
@@ -53,6 +55,9 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const fetchCardKeys = async () => {
         try {
             const response = await linkedCardKeyService.getCardKeys(username);
@@ -94,9 +99,25 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                 linkParams: formData.linkParams
             });
 
-            if (response.success) {
+            if (response.success && response.data) {
                 await fetchCardKeys();
-                setError(`成功生成 ${formData.count} 个带链接卡密`);
+
+                // 生成所有链接并复制
+                const links = response.data.map(cardKey => {
+                    const params = new URLSearchParams({
+                        cardkey: cardKey.key,
+                        ...(cardKey.phone ? { t: cardKey.phone } : {}),
+                        ...(cardKey.appName ? { appname: cardKey.appName } : {})
+                    });
+                    return `${window.location.origin}/user/${username}/message?${params.toString()}`;
+                }).join('\n');
+
+                if (copyToClipboard(links)) {
+                    setError(`成功生成 ${formData.count} 个带链接卡密，并已复制到剪贴板`);
+                } else {
+                    setError(`成功生成 ${formData.count} 个带链接卡密，但复制失败`);
+                }
+
                 setTimeout(() => setError(null), 3000);
             } else {
                 setError(response.message || '生成卡密失败');
@@ -149,6 +170,30 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
             setTimeout(() => setError(null), 2000);
         } else {
             setError('复制失败，请手动复制');
+        }
+    };
+
+    // 删除所有卡密
+    const handleDeleteAll = async () => {
+        if (isDeleting) return;
+
+        try {
+            setIsDeleting(true);
+            setError(null);
+
+            const response = await linkedCardKeyService.deleteAllCardKeys(username);
+
+            if (response.success) {
+                await fetchCardKeys();
+                setError('已成功删除所有卡密');
+                setIsDeleteDialogOpen(false);
+            } else {
+                setError(response.message || '删除失败');
+            }
+        } catch (error) {
+            setError('删除失败，请稍后重试');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -224,7 +269,15 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                     <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
                         {/* 生成卡密控制面板 */}
                         <div className="mb-8 border-b pb-6">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">生成带链接卡密</h3>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-white">生成带链接卡密</h3>
+                                <button
+                                    onClick={() => setIsDeleteDialogOpen(true)}
+                                    className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                >
+                                    删除所有卡密
+                                </button>
+                            </div>
                             <div className="space-y-4">
                                 <div className="flex gap-4">
                                     <div className="flex-1">
@@ -329,7 +382,8 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                                     </div>
                                 </div>
 
-                                <div className="flex justify-end">
+                                {/* 生成卡密控制面板的按钮部分 */}
+                                <div className="flex justify-end space-x-4">
                                     <button
                                         onClick={generateLinkedCardKeys}
                                         disabled={generating}
@@ -338,7 +392,7 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                                             : 'bg-blue-600 hover:bg-blue-700'
                                             }`}
                                     >
-                                        {generating ? '生成中...' : '生成带链接卡密'}
+                                        {generating ? '生成中...' : '生成并复制链接'}
                                     </button>
                                 </div>
                             </div>
@@ -400,14 +454,14 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                             {paginatedCardKeys.map((cardKey) => (
                                 <div
                                     key={cardKey.id}
-                                    className="p-6 border dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+                                    className="p-4 border dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
                                 >
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
                                         {/* 状态标签和时间 */}
                                         <div className="flex justify-between items-center">
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${cardKey.usedAt
-                                                    ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                                    : 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300'
+                                                ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                                                : 'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300'
                                                 }`}>
                                                 {cardKey.usedAt ? '已使用' : '未使用'}
                                             </span>
@@ -417,9 +471,11 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                                         </div>
 
                                         {/* 链接展示区域 */}
-                                        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-3">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">分享链接</span>
+                                        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                                    {APP_OPTIONS.find(opt => opt.value === cardKey.appName)?.label || '分享链接'}
+                                                </span>
                                                 {!cardKey.usedAt && (
                                                     <button
                                                         onClick={() => handleCopy(cardKey, 'link')}
@@ -434,51 +490,11 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                                             </div>
                                         </div>
 
-                                        {/* 卡密和应用信息 */}
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t dark:border-gray-700">
-                                            <div className="space-y-2">
-                                                <div className="text-sm text-gray-500 dark:text-gray-400">卡密</div>
-                                                <div className="flex items-center justify-between">
-                                                    <div className="font-mono text-sm text-gray-800 dark:text-gray-200">
-                                                        {cardKey.key}
-                                                    </div>
-                                                    {!cardKey.usedAt && (
-                                                        <button
-                                                            onClick={() => handleCopy(cardKey, 'key')}
-                                                            className="px-3 py-1 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                                        >
-                                                            复制卡密
-                                                        </button>
-                                                    )}
-                                                </div>
+                                        {cardKey.usedAt && (
+                                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                使用于 {new Date(cardKey.usedAt).toLocaleString()}
                                             </div>
-                                            <div className="space-y-2">
-                                                {cardKey.phone && (
-                                                    <div>
-                                                        <div className="text-sm text-gray-500 dark:text-gray-400">手机号</div>
-                                                        <div className="font-mono text-sm text-gray-800 dark:text-gray-200">
-                                                            {cardKey.phone}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {cardKey.appName && (
-                                                    <div>
-                                                        <div className="text-sm text-gray-500 dark:text-gray-400">应用</div>
-                                                        <div className="text-sm text-gray-800 dark:text-gray-200">
-                                                            {APP_OPTIONS.find(opt => opt.value === cardKey.appName)?.label || cardKey.appName}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {cardKey.usedAt && (
-                                                    <div>
-                                                        <div className="text-sm text-gray-500 dark:text-gray-400">使用时间</div>
-                                                        <div className="text-sm text-gray-800 dark:text-gray-200">
-                                                            {new Date(cardKey.usedAt).toLocaleString()}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -514,6 +530,72 @@ export default function LinkedCardKeysPage({ params }: LinkedCardKeysPageProps) 
                     </div>
                 </div>
             </main>
+
+            {/* 删除确认对话框 */}
+            <Transition appear show={isDeleteDialogOpen} as={Fragment}>
+                <Dialog as="div" className="relative z-50" onClose={() => setIsDeleteDialogOpen(false)}>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300"
+                        enterFrom="opacity-0"
+                        enterTo="opacity-100"
+                        leave="ease-in duration-200"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black bg-opacity-25" />
+                    </Transition.Child>
+
+                    <div className="fixed inset-0 overflow-y-auto">
+                        <div className="flex min-h-full items-center justify-center p-4 text-center">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300"
+                                enterFrom="opacity-0 scale-95"
+                                enterTo="opacity-100 scale-100"
+                                leave="ease-in duration-200"
+                                leaveFrom="opacity-100 scale-100"
+                                leaveTo="opacity-0 scale-95"
+                            >
+                                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 text-left align-middle shadow-xl transition-all">
+                                    <Dialog.Title
+                                        as="h3"
+                                        className="text-lg font-medium leading-6 text-gray-900 dark:text-white"
+                                    >
+                                        确认删除
+                                    </Dialog.Title>
+                                    <div className="mt-2">
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            确定要删除所有卡密吗？此操作不可恢复。
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-6 flex justify-end space-x-4">
+                                        <button
+                                            type="button"
+                                            className="inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none"
+                                            onClick={() => setIsDeleteDialogOpen(false)}
+                                        >
+                                            取消
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-white ${isDeleting
+                                                ? 'bg-gray-400 cursor-not-allowed'
+                                                : 'bg-red-600 hover:bg-red-700'
+                                                }`}
+                                            onClick={handleDeleteAll}
+                                            disabled={isDeleting}
+                                        >
+                                            {isDeleting ? '删除中...' : '确认删除'}
+                                        </button>
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition>
         </div>
     );
 } 
