@@ -23,6 +23,8 @@ export default function MessagePage({ params }: MessagePageProps) {
     const { username } = use(params);
     const searchParams = useSearchParams();
     const t = searchParams.get('t');
+    const appname = searchParams.get('appname');
+    const cardkey = searchParams.get('cardkey');
     const [userConfig, setUserConfig] = useState<UserConfig>({});
     const [isLoading, setIsLoading] = useState(true);
     const [verifyCode, setVerifyCode] = useState('');
@@ -71,88 +73,92 @@ export default function MessagePage({ params }: MessagePageProps) {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white"></div>
+            <div className="flex justify-center items-center min-h-screen bg-[#fbfbfd]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800"></div>
             </div>
         );
     }
 
+    // 找到匹配的帮助文档
+    const matchedHelp = userConfig.appHelps?.find(
+        help => help.appName.toLowerCase() === appname?.toLowerCase()
+    );
+
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                        {userConfig.title || '消息查看'}
+        <div className="min-h-screen bg-[#fbfbfd]">
+            <div className="max-w-md mx-auto px-4 py-8">
+                <div className="bg-white rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] p-6">
+                    <h1 className="text-2xl font-semibold text-[#1d1d1f] text-center mb-8">
+                        会员自助登录
                     </h1>
 
                     {!isVerified ? (
                         <div className="space-y-6">
-                            {/* 帮助文档 */}
-                            {userConfig.appHelps?.map((appHelp) => (
-                                appHelp.appName === t && (
-                                    <div key={appHelp.appName} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <pre className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
-                                            {appHelp.helpText}
-                                        </pre>
-                                    </div>
-                                )
-                            ))}
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-[#1d1d1f] text-sm mb-2">
+                                        账号：
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={t || ''}
+                                        readOnly
+                                        className="w-full px-4 py-2 rounded-lg border border-[#d2d2d7] bg-white focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] transition-colors text-[#1d1d1f] font-medium"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[#1d1d1f] text-sm mb-2">
+                                        验证码：
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={verifyCode}
+                                        onChange={(e) => setVerifyCode(e.target.value)}
+                                        className="w-full px-4 py-2 rounded-lg border border-[#d2d2d7] bg-white focus:outline-none focus:border-[#0066cc] focus:ring-1 focus:ring-[#0066cc] transition-colors text-[#1d1d1f] font-medium"
+                                    />
+                                </div>
+                            </div>
 
-                            {/* 验证表单 */}
-                            <form onSubmit={handleVerify} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        账号
-                                    </label>
-                                    <div className="mt-1 flex rounded-md shadow-sm">
-                                        <input
-                                            type="text"
-                                            value={t || ''}
-                                            readOnly
-                                            className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => handleCopy(t || '')}
-                                            className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        >
-                                            复制
-                                        </button>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        验证码
-                                    </label>
-                                    <div className="mt-1 flex rounded-md shadow-sm">
-                                        <input
-                                            type="text"
-                                            value={verifyCode}
-                                            onChange={(e) => setVerifyCode(e.target.value)}
-                                            placeholder="请输入验证码"
-                                            className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => handleCopy(verifyCode)}
-                                            className="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                                        >
-                                            复制
-                                        </button>
-                                    </div>
-                                </div>
-                                {error && (
-                                    <div className="text-red-500 text-sm">
-                                        {error}
-                                    </div>
-                                )}
+                            <div className="space-y-3">
                                 <button
-                                    type="submit"
-                                    className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    type="button"
+                                    onClick={() => handleCopy(t || '')}
+                                    className="w-full py-3 rounded-full bg-[#0066cc] text-white font-medium shadow-sm hover:bg-[#0077ed] active:bg-[#004499] transition-colors"
                                 >
-                                    验证
+                                    第一步：复制账号
                                 </button>
-                            </form>
+                                <button
+                                    type="button"
+                                    onClick={() => handleCopy(verifyCode)}
+                                    className="w-full py-3 rounded-full bg-[#0066cc] text-white font-medium shadow-sm hover:bg-[#0077ed] active:bg-[#004499] transition-colors"
+                                >
+                                    第二步：复制验证码
+                                </button>
+                            </div>
+
+                            {/* 帮助文档 */}
+                            <div className="mt-8">
+                                <div className="text-center text-[#0066cc] font-medium mb-4">
+                                    —— 如何使用 ——
+                                </div>
+                                <div className="text-[#86868b] text-sm space-y-2">
+                                    {matchedHelp ? (
+                                        <pre className="whitespace-pre-wrap">{matchedHelp.helpText}</pre>
+                                    ) : (
+                                        <>
+                                            <p>1.剪映APP点设置找回账号，输入本网站显示的账号点下一步。</p>
+                                            <p>2.本页面复制验证码去APP登录即可</p>
+                                            <p>3.不来验证码请在app重发一次验证码，还有问题请联系客服解决</p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {error && (
+                                <div className="text-[#ff3b30] text-sm text-center">
+                                    {error}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div>
