@@ -57,17 +57,30 @@ model Product {
 }
 
 model UserConfig {
-  id          String    @id @default(cuid())
-  userId      String    @unique
-  user        User      @relation(fields: [userId], references: [id])
-  title       String?   // 页面标题
-  theme       String?
-  language    String?
-  cardKeyExpireMinutes Int?     // 卡密过期时间（分钟）
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                    String    @id @default(cuid())
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  userId               String    @unique
+  title                String?
+  theme                String?
+  language             String?
+  cardKeyExpireMinutes Int?
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appHelps             AppHelp[]
 
   @@map("user_configs")
+}
+
+model AppHelp {
+  id        String     @id @default(cuid())
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  appName   String
+  helpText  String
+  configId  String
+  config    UserConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, appName])
 }
 
 model SimpleCardKey {

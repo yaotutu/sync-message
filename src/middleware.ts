@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 
 // 不需要认证的路由
 const publicPaths = [
@@ -19,6 +18,7 @@ const publicPaths = [
 const protectedApiPaths = [
     '/api/user/*/cardkeys',
     '/api/user/*/profile',
+    '/api/user/*/app-helps',  // 添加帮助文档路由
 ];
 
 export async function middleware(request: NextRequest) {
@@ -75,6 +75,6 @@ export const config = {
         '/manage/:path*',
         '/user/:path*/cardkeys',
         '/user/:path*/profile',
-        '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
+        '/((?!_next/static|_next/image|favicon.ico).*)',
     ],
 };

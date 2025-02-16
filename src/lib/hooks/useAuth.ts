@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiClient } from '@/lib/api/client';
+import { authService } from '@/lib/api/services';
 
 export interface AuthStatus {
     isAuthenticated: boolean;
@@ -23,9 +25,7 @@ export function useAuth(currentUsername: string) {
     // 使用 useCallback 包装 checkAuth 函数
     const checkAuth = useCallback(async () => {
         try {
-            const response = await fetch(`/api/user/${currentUsername}/verify`);
-            const data = await response.json();
-
+            const data = await authService.verifyLoginStatus(currentUsername);
             setStatus({
                 isAuthenticated: data.success,
                 username: data.success ? currentUsername : null,
@@ -43,15 +43,9 @@ export function useAuth(currentUsername: string) {
 
     const login = async (username: string, password: string): Promise<boolean> => {
         try {
-            const response = await fetch(`/api/user/${username}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ password }),
+            const data = await apiClient.post(`/api/user/${username}/login`, { password }, {
+                showError: false
             });
-
-            const data = await response.json();
 
             if (data.success) {
                 setStatus({
@@ -72,9 +66,7 @@ export function useAuth(currentUsername: string) {
     const logout = async () => {
         if (status.username) {
             try {
-                await fetch(`/api/user/${status.username}/logout`, {
-                    method: 'POST',
-                });
+                await authService.logout(status.username);
             } catch (error) {
                 console.error('退出登录失败:', error);
             }

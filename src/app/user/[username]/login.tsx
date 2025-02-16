@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 interface LoginProps {
     username: string;
@@ -13,6 +14,7 @@ export default function UserLogin({ username, onLoginSuccess }: LoginProps) {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const { login } = useAuth(username);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -20,23 +22,15 @@ export default function UserLogin({ username, onLoginSuccess }: LoginProps) {
         setError('');
 
         try {
-            const response = await fetch(`/api/user/${username}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ password }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
+            const success = await login(username, password);
+            if (success) {
                 if (onLoginSuccess) {
                     onLoginSuccess();
                 }
-                router.refresh();
+                // 登录成功后直接跳转到用户主页
+                router.push(`/user/${username}/profile`);
             } else {
-                setError(data.message || '登录失败');
+                setError('用户名或密码错误');
             }
         } catch (err) {
             setError('登录过程中发生错误，请重试');

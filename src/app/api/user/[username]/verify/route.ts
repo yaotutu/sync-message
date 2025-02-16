@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { verifyToken } from '@/lib/auth';
 
 export async function GET(
     request: NextRequest,
@@ -14,13 +14,10 @@ export async function GET(
             return NextResponse.json({ success: false, message: '未登录' });
         }
 
-        const { payload } = await jwtVerify(
-            token.value,
-            new TextEncoder().encode(process.env.NEXTAUTH_SECRET)
-        );
+        const tokenData = await verifyToken(token.value);
 
         // 验证token中的用户名是否匹配
-        if (payload.username !== username) {
+        if (tokenData.username !== username) {
             return NextResponse.json({ success: false, message: '用户验证失败' });
         }
 

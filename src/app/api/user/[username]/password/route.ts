@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { verifyToken } from '@/lib/auth';
 
 export async function POST(
     request: Request,
@@ -10,19 +10,14 @@ export async function POST(
 ) {
     try {
         const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
+        const token = cookieStore.get('user_token')?.value;
         if (!token) {
             return NextResponse.json({ success: false, message: '未登录' });
         }
 
         // 验证token
-        const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET);
-        if (!secret) {
-            return NextResponse.json({ success: false, message: '系统配置错误' });
-        }
-        const { payload } = await jwtVerify(token, secret);
-
-        if (payload.username !== params.username) {
+        const tokenData = await verifyToken(token);
+        if (tokenData.username !== params.username) {
             return NextResponse.json({ success: false, message: '无权限修改' });
         }
 

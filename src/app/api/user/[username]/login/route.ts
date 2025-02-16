@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateUserPassword } from '@/lib/server/db';
-import { SignJWT } from 'jose';
+import { signToken } from '@/lib/auth';
 
 export async function POST(
     request: NextRequest,
@@ -27,10 +27,7 @@ export async function POST(
         }
 
         // 创建用户JWT token
-        const token = await new SignJWT({ username })
-            .setProtectedHeader({ alg: 'HS256' })
-            .setExpirationTime('24h')
-            .sign(new TextEncoder().encode(process.env.NEXTAUTH_SECRET));
+        const token = await signToken(username);
 
         const response = NextResponse.json({
             success: true,
