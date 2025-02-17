@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import UserLogin from './login';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { use } from 'react';
 import ContactModal from '@/components/ContactModal';
-import { authService } from '@/lib/api/services';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 interface UserPageProps {
     params: Promise<{ username: string }>;
@@ -14,36 +14,18 @@ interface UserPageProps {
 
 export default function UserPage({ params }: UserPageProps) {
     const { username } = use(params);
-    const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const router = useRouter();
-
-    const checkLoginStatus = useCallback(async () => {
-        try {
-            const response = await authService.verifyLoginStatus(username);
-            setIsLoggedIn(response.success);
-        } catch (error) {
-            console.error('验证登录状态失败:', error);
-            setIsLoggedIn(false);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [username]);
+    const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+    const { isAuthenticated, isLoading, logout } = useAuth(username);
 
     const handleLogout = async () => {
         try {
-            await authService.logout(username);
-            setIsLoggedIn(false);
+            await logout();
             router.refresh();
         } catch (error) {
             console.error('退出登录失败:', error);
         }
     };
-
-    useEffect(() => {
-        checkLoginStatus();
-    }, [checkLoginStatus]);
 
     if (isLoading) {
         return (
@@ -56,15 +38,14 @@ export default function UserPage({ params }: UserPageProps) {
         );
     }
 
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
         return <UserLogin username={username} onLoginSuccess={() => {
-            setIsLoggedIn(true);
             router.refresh();
         }} />;
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col ">
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
             <nav className="bg-white dark:bg-gray-800 shadow">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between h-16">

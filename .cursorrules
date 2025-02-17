@@ -29,6 +29,11 @@
       "pattern": "const response = await fetch.*?\\n.*?const data = await response\\.json\\(\\)",
       "message": "请使用 apiClient，它会自动处理响应解析",
       "severity": "warning"
+    },
+    {
+      "pattern": "await fetch\\(",
+      "message": "请使用 apiClient 发起 API 请求，而不是直接使用 fetch",
+      "severity": "error"
     }
   ],
   "customTips": [

@@ -1,36 +1,38 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { JWTService } from './auth/jwt';
 
 // 使用应用名称作为密钥，至少比默认值要好
 const JWT_SECRET = 'sync-message-system-key-123';
 
-interface TokenData {
+const jwtService = JWTService.getInstance();
+
+export interface TokenData {
+    id: string;
     username: string;
+    role: 'user' | 'admin';
     exp: number;
 }
 
-export async function signToken(username: string): Promise<string> {
-    return new SignJWT({ username })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setExpirationTime('24h')
-        .sign(new TextEncoder().encode(JWT_SECRET));
+export async function signToken(payload: Omit<TokenData, 'exp'>): Promise<string> {
+    try {
+        return await jwtService.signToken(payload);
+    } catch (error) {
+        console.error('Token 签发失败:', error);
+        throw new Error('Token 签发失败');
+    }
 }
 
-export async function verifyToken(token: string): Promise<TokenData> {
+export async function verifyToken(token: string): Promise<TokenData | null> {
     try {
-        const { payload } = await jwtVerify(
-            token,
-            new TextEncoder().encode(JWT_SECRET)
-        );
-
-        if (!payload.username) {
-            throw new Error('无效的 token 格式');
-        }
-
+        const payload = await jwtService.verifyToken(token);
         return {
-            username: payload.username as string,
-            exp: payload.exp as number
+            id: payload.id,
+            username: payload.username,
+            role: payload.role,
+            exp: payload.exp
         };
     } catch (error) {
-        throw new Error('无效的 token');
+        console.error('Token 验证失败:', error);
+        return null;
     }
 } 

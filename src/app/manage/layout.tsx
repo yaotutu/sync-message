@@ -11,6 +11,7 @@ interface LayoutProps {
 const navItems = [
     { href: '/manage/dashboard', label: '仪表盘' },
     { href: '/manage/users', label: '用户管理' },
+    { href: '/manage/templates', label: '模板管理' },
     { href: '/manage/settings', label: '系统设置' },
 ];
 
@@ -84,8 +85,8 @@ export default function ManageLayout({ children }: LayoutProps) {
                                         key={item.href}
                                         href={item.href}
                                         className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${pathname === item.href
-                                                ? 'border-blue-500 text-gray-900 dark:text-white'
-                                                : 'border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white hover:border-gray-300'
+                                            ? 'border-blue-500 text-gray-900 dark:text-white'
+                                            : 'border-transparent text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white hover:border-gray-300'
                                             }`}
                                     >
                                         {item.label}

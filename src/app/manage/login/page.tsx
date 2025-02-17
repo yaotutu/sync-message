@@ -28,6 +28,7 @@ export default function AdminLoginPage() {
 
             if (data.success) {
                 router.push('/manage/dashboard');
+                router.refresh();
             } else {
                 setError(data.message || '登录失败');
             }

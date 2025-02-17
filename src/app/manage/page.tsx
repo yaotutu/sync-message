@@ -1,15 +1,31 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function ManagePage() {
     const router = useRouter();
-    const { isAuthenticated, username, logout } = useAuth('admin');
+    const { isAuthenticated, loading, username, logout } = useAuth('admin');
+
+    useEffect(() => {
+        if (!loading && !isAuthenticated) {
+            router.push('/manage/login');
+        }
+    }, [isAuthenticated, loading, router]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto"></div>
+                    <p className="mt-4 text-gray-600 dark:text-gray-400">加载中...</p>
+                </div>
+            </div>
+        );
+    }
 
     if (!isAuthenticated) {
-        router.push('/user/admin');
         return null;
     }
 
