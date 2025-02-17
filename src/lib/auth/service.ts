@@ -1,41 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { compare, hash } from 'bcryptjs';
-import { AuthError, AuthResponse, LoginCredentials } from '../types/auth';
+import { TokenPayload, AuthResponse } from '../types/auth';
 import { JWTService } from './jwt';
-import { apiClient } from '@/lib/api-client';
 
 const prisma = new PrismaClient();
 const jwtService = JWTService.getInstance();
 
-interface User {
-    id: string;
-    username: string;
-    role?: string;
-}
-
-interface ApiAuthResponse {
-    success: boolean;
-    data?: {
-        user: User;
-        token?: string;
-    };
-    message?: string;
-}
-
-export interface AuthResponse {
-    success: boolean;
-    message?: string;
-    data?: {
-        token?: string;
-        user?: {
-            id: string;
-            username: string;
-            role: 'admin' | 'user';
-        };
-    };
-}
-
-export interface AuthError {
+interface AuthError {
     message: string;
     status: number;
 }
@@ -68,7 +39,10 @@ export class AuthService {
             if (user) {
                 const isValidPassword = await compare(password, user.password);
                 if (!isValidPassword) {
-                    throw this.createError('用户名或密码错误', 401);
+                    return {
+                        success: false,
+                        message: '用户名或密码错误'
+                    };
                 }
 
                 const token = await jwtService.signToken({
@@ -99,7 +73,10 @@ export class AuthService {
             if (admin) {
                 const isValidPassword = await compare(password, admin.password);
                 if (!isValidPassword) {
-                    throw this.createError('用户名或密码错误', 401);
+                    return {
+                        success: false,
+                        message: '用户名或密码错误'
+                    };
                 }
 
                 const token = await jwtService.signToken({
@@ -122,14 +99,16 @@ export class AuthService {
                 };
             }
 
-            // 既不是用户也不是管理员
-            throw this.createError('用户名或密码错误', 401);
+            return {
+                success: false,
+                message: '用户名或密码错误'
+            };
         } catch (error) {
-            if (this.isAuthError(error)) {
-                throw error;
-            }
             console.error('登录失败:', error);
-            throw this.createError('登录失败，请稍后重试', 500);
+            return {
+                success: false,
+                message: '登录失败，请稍后重试'
+            };
         }
     }
 
@@ -157,8 +136,10 @@ export class AuthService {
                 }
             };
         } catch (error) {
-            console.error('验证会话失败:', error);
-            throw this.createError('会话已过期，请重新登录', 401);
+            return {
+                success: false,
+                message: '会话已过期，请重新登录'
+            };
         }
     }
 
@@ -169,12 +150,18 @@ export class AuthService {
             });
 
             if (!user) {
-                throw this.createError('用户不存在', 404);
+                return {
+                    success: false,
+                    message: '用户不存在'
+                };
             }
 
             const isValidPassword = await compare(oldPassword, user.password);
             if (!isValidPassword) {
-                throw this.createError('当前密码错误', 401);
+                return {
+                    success: false,
+                    message: '当前密码错误'
+                };
             }
 
             const hashedPassword = await hash(newPassword, 10);
@@ -188,10 +175,11 @@ export class AuthService {
                 message: '密码修改成功'
             };
         } catch (error) {
-            if (this.isAuthError(error)) {
-                throw error;
-            }
-            throw this.createError('修改密码失败，请稍后重试', 500);
+            console.error('修改密码失败:', error);
+            return {
+                success: false,
+                message: '修改密码失败，请稍后重试'
+            };
         }
     }
 

@@ -1,13 +1,17 @@
 import { PrismaClient } from '@prisma/client';
-import { hash } from 'bcryptjs';
+import { hash, compare } from 'bcryptjs';
 import { customAlphabet } from 'nanoid';
 import { UserCreateInput, UserListResponse, UserResponse } from '../types/user';
 import { AuthError } from '../types/auth';
+import { prisma } from '../prisma';
 
-const prisma = new PrismaClient();
-
-// 使用自定义字母表生成 webhook key，只包含字母和数字
 const generateWebhookKey = customAlphabet('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 32);
+
+export interface UserData {
+    id: string;
+    username: string;
+    role: 'user' | 'admin';
+}
 
 export class UserService {
     private static instance: UserService;
@@ -101,6 +105,110 @@ export class UserService {
         } catch (error) {
             throw this.createError('删除用户失败，请稍后重试', 500);
         }
+    }
+
+    /**
+     * 验证用户凭据
+     */
+    async validateCredentials(username: string, password: string): Promise<{ user: UserData | null; isValid: boolean }> {
+        // 先查找普通用户
+        const user = await prisma.user.findUnique({
+            where: { username }
+        });
+
+        if (user) {
+            const isValid = await compare(password, user.password);
+            if (isValid) {
+                return {
+                    isValid: true,
+                    user: {
+                        id: user.id,
+                        username: user.username,
+                        role: 'user'
+                    }
+                };
+            }
+        }
+
+        // 如果没找到用户或密码错误，尝试查找管理员
+        const admin = await prisma.admin.findUnique({
+            where: { username }
+        });
+
+        if (admin) {
+            const isValid = await compare(password, admin.password);
+            if (isValid) {
+                return {
+                    isValid: true,
+                    user: {
+                        id: admin.id,
+                        username: admin.username,
+                        role: 'admin'
+                    }
+                };
+            }
+        }
+
+        return {
+            isValid: false,
+            user: null
+        };
+    }
+
+    /**
+     * 根据用户名查找用户
+     */
+    async findByUsername(username: string): Promise<UserData | null> {
+        const user = await prisma.user.findUnique({
+            where: { username }
+        });
+
+        if (user) {
+            return {
+                id: user.id,
+                username: user.username,
+                role: 'user'
+            };
+        }
+
+        const admin = await prisma.admin.findUnique({
+            where: { username }
+        });
+
+        if (admin) {
+            return {
+                id: admin.id,
+                username: admin.username,
+                role: 'admin'
+            };
+        }
+
+        return null;
+    }
+
+    /**
+     * 修改用户密码
+     */
+    async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<boolean> {
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (user) {
+            const isValid = await compare(oldPassword, user.password);
+            if (!isValid) {
+                return false;
+            }
+
+            await prisma.user.update({
+                where: { id: userId },
+                data: { password: newPassword }
+            });
+
+            return true;
+        }
+
+        return false;
     }
 
     private createError(message: string, status: number): AuthError {

@@ -34,25 +34,131 @@
       "pattern": "await fetch\\(",
       "message": "请使用 apiClient 发起 API 请求，而不是直接使用 fetch",
       "severity": "error"
+    },
+    {
+      "pattern": "localStorage\\.getItem\\(['\"].*?token['\"]\\)",
+      "message": "请使用 cookie 存储认证信息，不要使用 localStorage",
+      "severity": "error"
+    },
+    {
+      "pattern": "localStorage\\.setItem\\(['\"].*?token['\"]\\)",
+      "message": "请使用 cookie 存储认证信息，不要使用 localStorage",
+      "severity": "error"
+    },
+    {
+      "pattern": "useEffect\\(\\s*\\(\\)\\s*=>\\s*{[^}]*verify[^}]*}\\s*,\\s*\\[\\]\\s*\\)",
+      "message": "请使用 useAuth hook 处理认证状态，不要直接在组件中验证",
+      "severity": "error"
+    },
+    {
+      "pattern": "const \\[auth.*?\\] = useState\\(.*?\\)",
+      "message": "请使用 useAuth hook 管理认证状态，不要使用 useState",
+      "severity": "error"
+    },
+    {
+      "pattern": "sessionStorage\\.getItem\\(['\"].*?token['\"]\\)",
+      "message": "请使用 cookie 存储认证信息，不要使用 sessionStorage",
+      "severity": "error"
+    },
+    {
+      "pattern": "sessionStorage\\.setItem\\(['\"].*?token['\"]\\)",
+      "message": "请使用 cookie 存储认证信息，不要使用 sessionStorage",
+      "severity": "error"
+    },
+    {
+      "pattern": "router\\.push\\(['\"].*?login['\"]\\)",
+      "message": "登录重定向请使用 router.replace 而不是 router.push，避免在历史记录中留下登录页面",
+      "severity": "warning"
+    },
+    {
+      "pattern": "prisma\\.[a-zA-Z]+\\.",
+      "message": "请使用服务层封装的函数进行数据库操作，不要直接使用 Prisma 客户端",
+      "severity": "error"
+    },
+    {
+      "pattern": "new SignJWT|jwtVerify",
+      "message": "请使用 @/lib/auth/jwt 中的 signToken 和 verifyToken 函数处理 JWT",
+      "severity": "error"
+    },
+    {
+      "pattern": "import.*?next-auth",
+      "message": "项目使用自定义认证系统，请勿使用 NextAuth",
+      "severity": "error"
+    },
+    {
+      "pattern": "const response = await fetch.*?\\n.*?const data = await response\\.json\\(\\)",
+      "message": "请使用 apiClient，它会自动处理响应解析",
+      "severity": "warning"
+    },
+    {
+      "pattern": "params\\.[a-zA-Z]+(?!\\s*=\\s*React\\.use\\()",
+      "message": "请在组件顶层使用 React.use() 解包路由参数",
+      "severity": "error"
+    },
+    {
+      "pattern": "React\\.use\\([^)]*\\).*?(?:useMemo|useEffect|useCallback)",
+      "message": "React.use() 必须在组件顶层调用，不能在其他 Hook 内部使用",
+      "severity": "error"
+    },
+    {
+      "pattern": "router\\.(push|replace).*?\\s*return\\s*null",
+      "message": "请在 useEffect 中处理导航，避免在渲染过程中进行导航操作",
+      "severity": "error"
     }
   ],
   "customTips": [
     {
-      "title": "API 请求规范",
+      "title": "认证系统规范",
       "content": [
-        "1. 使用 apiClient 发起所有 API 请求",
-        "2. API 路径格式: /api/user/${username}/[resource]",
-        "3. 认证相关 API 使用 authService",
-        "4. 受保护的 API 需要在 middleware.ts 中的 protectedApiPaths 注册"
+        "1. 使用 useAuth hook 处理所有认证相关的状态和操作",
+        "2. 使用 httpOnly cookie 存储认证信息，cookie 名称为 user_token",
+        "3. 所有认证相关的 API 请求必须使用 apiClient",
+        "4. 使用 AuthService 处理所有认证逻辑",
+        "5. 在 middleware.ts 中注册需要保护的路由",
+        "6. JWT 过期时间统一为 24 小时",
+        "7. 登录页面使用统一的 LoginPage 组件",
+        "8. 禁止使用 localStorage/sessionStorage 存储认证信息",
+        "9. 禁止使用第三方认证库(如 next-auth)",
+        "10. 禁止在组件中直接处理认证逻辑",
+        "11. 登录重定向使用 router.replace 而不是 router.push",
+        "12. 认证状态必须通过 useAuth hook 管理",
+        "13. 所有数据库操作必须通过服务层函数完成",
+        "14. JWT 操作必须使用 @/lib/auth/jwt 中的工具函数"
       ]
     },
     {
-      "title": "认证规范",
+      "title": "登录页面规范",
       "content": [
-        "1. 使用 user_token cookie 进行认证",
-        "2. 使用 @/lib/auth 中的工具函数处理 token",
-        "3. 受保护的组件使用 useAuth hook 处理认证状态",
-        "4. API 路由中验证 token 时需要同时验证 username"
+        "1. 使用统一的 LoginPage 组件",
+        "2. 必须处理加载状态和错误状态",
+        "3. 表单提交时禁用输入和提交按钮",
+        "4. 使用 toast 显示操作结果",
+        "5. 登录成功后使用 router.replace 重定向",
+        "6. 已登录用户自动重定向到用户页面",
+        "7. 使用 useAuth hook 管理认证状态",
+        "8. 禁止在组件中直接调用 API"
+      ]
+    },
+    {
+      "title": "API 路由规范",
+      "content": [
+        "1. 使用 NextRequest 和 NextResponse 处理请求和响应",
+        "2. 使用 httpOnly cookie 存储认证信息",
+        "3. 统一的错误处理格式",
+        "4. 所有响应必须包含 success 字段",
+        "5. 错误响应必须包含 message 字段",
+        "6. 成功响应的数据放在 data 字段中",
+        "7. 认证相关的 API 路径格式: /api/auth/*"
+      ]
+    },
+    {
+      "title": "路由参数处理规范",
+      "content": [
+        "1. 在组件顶层使用 React.use() 解包路由参数",
+        "2. 避免在其他 Hook 内部使用 React.use()",
+        "3. 在 useEffect 中处理导航逻辑",
+        "4. 避免在渲染过程中进行导航",
+        "5. 确保所有状态依赖都被正确处理"
       ]
     }
   ]

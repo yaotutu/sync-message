@@ -1,113 +1,56 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '../api-client';
 
-export interface User {
-    id: string;
+interface User {
     username: string;
-    role?: string;
+    id: string;
+    role: 'user' | 'admin';
 }
 
-export function useAuth(requiredUsername?: string) {
+interface ApiResponse<T = any> {
+    success: boolean;
+    message?: string;
+    data: T;
+}
+
+interface AuthResponse {
+    user: User;
+}
+
+export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
+    // 检查登录状态
     useEffect(() => {
-        const verifyAuth = async () => {
-            try {
-                const response = await fetch('/api/user/verify', {
-                    credentials: 'include'
-                });
-
-                const data = await response.json();
-
-                if (!data.success) {
-                    setUser(null);
-                    if (requiredUsername) {
-                        setError(data.message || '未登录');
-                    }
-                    return;
-                }
-
-                if (requiredUsername && data.data?.user?.username !== requiredUsername) {
-                    setUser(null);
-                    setError('无权访问此页面');
-                    return;
-                }
-
-                setUser(data.data.user);
-                setError(null);
-            } catch (err: any) {
-                console.error('验证失败:', err);
-                setUser(null);
-                setError('验证过程中发生错误');
-            } finally {
-                setIsLoading(false);
+        apiClient.get<ApiResponse<AuthResponse>>('/api/auth/verify').then(res => {
+            if (res.success) {
+                setUser(res.data.user);
             }
-        };
+        });
+    }, []);
 
-        verifyAuth();
-    }, [requiredUsername]);
-
+    // 登录
     const login = async (username: string, password: string) => {
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const response = await fetch('/api/user/login', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password }),
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                throw new Error(data.message || '登录失败');
-            }
-
-            setUser(data.data.user);
-            return data;
-        } catch (err: any) {
-            setError(err.message || '登录失败');
-            throw err;
-        } finally {
-            setIsLoading(false);
+        const res = await apiClient.post<ApiResponse<AuthResponse>>('/api/auth/login', { username, password });
+        if (res.success) {
+            setUser(res.data.user);
         }
+        return res;
     };
 
+    // 退出登录
     const logout = async () => {
-        setIsLoading(true);
-        try {
-            const response = await fetch('/api/user/logout', {
-                method: 'POST',
-                credentials: 'include'
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                setUser(null);
-                router.push('/');
-                router.refresh();
-            }
-        } catch (err: any) {
-            setError(err.message || '登出失败');
-            throw err;
-        } finally {
-            setIsLoading(false);
-        }
+        await apiClient.post('/api/auth/logout');
+        setUser(null);
+        router.replace('/login');
     };
 
     return {
         user,
-        isLoading,
-        error,
         login,
         logout,
         isAuthenticated: !!user

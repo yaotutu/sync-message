@@ -2,8 +2,8 @@ import { toast } from 'sonner';
 
 interface ApiResponse<T = any> {
     success: boolean;
-    message?: string;
     data?: T;
+    message?: string;
 }
 
 interface RequestConfig extends RequestInit {
@@ -20,62 +20,65 @@ class ApiClient {
 
     private getHeaders(): HeadersInit {
         const headers: HeadersInit = {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         };
 
-        const token = localStorage.getItem('user_token');
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
+        // 不再从 localStorage 获取 token，因为我们使用 httpOnly cookie
         return headers;
     }
 
     private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
         const data = await response.json();
 
-        if (!response.ok && response.status !== 401) {
+        if (!response.ok) {
+            // 401 状态码特殊处理
+            if (response.status === 401) {
+                return {
+                    success: false,
+                    message: data.message || '未登录或会话已过期'
+                };
+            }
             throw new Error(data.message || '请求失败');
         }
 
         return data;
     }
 
-    async get<T = any>(url: string): Promise<ApiResponse<T>> {
-        const response = await fetch(url, {
-            credentials: 'include',
+    async get<T = any>(path: string): Promise<ApiResponse<T>> {
+        const response = await fetch(path, {
+            credentials: 'include', // 确保发送 cookies
             headers: this.getHeaders()
         });
 
         return this.handleResponse<T>(response);
     }
 
-    async post<T = any>(url: string, body: any): Promise<ApiResponse<T>> {
-        const response = await fetch(url, {
+    async post<T = any>(path: string, body?: any): Promise<ApiResponse<T>> {
+        const response = await fetch(path, {
             method: 'POST',
-            credentials: 'include',
+            credentials: 'include', // 确保发送 cookies
             headers: this.getHeaders(),
-            body: JSON.stringify(body)
+            body: body ? JSON.stringify(body) : undefined
         });
 
         return this.handleResponse<T>(response);
     }
 
-    async put<T = any>(url: string, body: any): Promise<ApiResponse<T>> {
-        const response = await fetch(url, {
+    async put<T = any>(path: string, body?: any): Promise<ApiResponse<T>> {
+        const response = await fetch(path, {
             method: 'PUT',
-            credentials: 'include',
+            credentials: 'include', // 确保发送 cookies
             headers: this.getHeaders(),
-            body: JSON.stringify(body)
+            body: body ? JSON.stringify(body) : undefined
         });
 
         return this.handleResponse<T>(response);
     }
 
-    async delete<T = any>(url: string): Promise<ApiResponse<T>> {
-        const response = await fetch(url, {
+    async delete<T = any>(path: string): Promise<ApiResponse<T>> {
+        const response = await fetch(path, {
             method: 'DELETE',
-            credentials: 'include',
+            credentials: 'include', // 确保发送 cookies
             headers: this.getHeaders()
         });
 

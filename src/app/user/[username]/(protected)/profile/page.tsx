@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { apiClient } from '@/lib/api/client';
+import { apiClient } from '@/lib/api-client';
 import AppHelpSection from './AppHelpSection';
 
 interface UserConfig {
@@ -20,26 +19,19 @@ interface ProfilePageProps {
 export default function ProfilePage({ params }: ProfilePageProps) {
     const { username } = use(params);
     const router = useRouter();
-    const { isAuthenticated, loading: authLoading } = useAuth(username);
     const [config, setConfig] = useState<UserConfig>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    useEffect(() => {
-        if (!authLoading && !isAuthenticated) {
-            router.push(`/user/${username}`);
-            return;
-        }
-        if (isAuthenticated) {
-            loadConfig();
-        }
-    }, [username, isAuthenticated, authLoading]);
+    React.useEffect(() => {
+        loadConfig();
+    }, [username]);
 
     const loadConfig = async () => {
         try {
-            const data = await apiClient.get(`/api/user/${username}/config`);
-            if (data.success) {
-                setConfig(data.data || {});
+            const response = await apiClient.get(`/api/user/${username}/config`);
+            if (response.success) {
+                setConfig(response.data || {});
             }
         } catch (err) {
             toast.error('加载配置失败');
@@ -53,8 +45,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         setIsSaving(true);
 
         try {
-            const data = await apiClient.post(`/api/user/${username}/config`, config);
-            if (data.success) {
+            const response = await apiClient.post(`/api/user/${username}/config`, config);
+            if (response.success) {
                 toast.success('配置已保存');
             }
         } catch (err) {
@@ -64,16 +56,12 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         }
     };
 
-    if (authLoading || isLoading) {
+    if (isLoading) {
         return (
             <div className="flex justify-center items-center min-h-screen">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white"></div>
             </div>
         );
-    }
-
-    if (!isAuthenticated) {
-        return null;
     }
 
     return (
@@ -125,6 +113,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                                         设置消息页面的标题，不设置则使用默认标题。
                                     </p>
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                         卡密有效期（分钟）
@@ -142,25 +131,24 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                                         />
                                     </div>
                                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                                        设置卡密的有效期，单位为分钟，不设置则使用默认值（30分钟）。
+                                        设置卡密的默认有效期，单位为分钟。不设置则使用系统默认值。
                                     </p>
                                 </div>
-                                <div>
+
+                                <div className="flex justify-end">
                                     <button
                                         type="submit"
                                         disabled={isSaving}
-                                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                                        className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {isSaving ? '保存中...' : '保存'}
+                                        {isSaving ? '保存中...' : '保存设置'}
                                     </button>
                                 </div>
                             </form>
                         </div>
 
-                        {/* 应用帮助文档管理 */}
-                        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
-                            <AppHelpSection username={username} />
-                        </div>
+                        {/* 应用帮助 */}
+                        <AppHelpSection username={username} />
                     </div>
                 </div>
             </main>

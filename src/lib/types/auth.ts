@@ -10,16 +10,18 @@ export interface LoginCredentials {
     password: string;
 }
 
+export interface AuthUser {
+    id: string;
+    username: string;
+    role: 'admin' | 'user';
+}
+
 export interface AuthResponse {
     success: boolean;
     message?: string;
     data?: {
         token?: string;
-        user?: {
-            id: string;
-            username: string;
-            role: 'admin' | 'user';
-        };
+        user?: AuthUser;
     };
 }
 
