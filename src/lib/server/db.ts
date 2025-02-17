@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { compare } from 'bcryptjs';
 
 const prismaClient = new PrismaClient();
 
@@ -28,9 +29,16 @@ export async function validateUser(username: string, password: string): Promise<
         const user = await prismaClient.user.findUnique({
             where: { username }
         });
-        if (!user || user.password !== password) {
+
+        if (!user) {
             return { success: false, message: '用户名或密码错误' };
         }
+
+        const isValidPassword = await compare(password, user.password);
+        if (!isValidPassword) {
+            return { success: false, message: '用户名或密码错误' };
+        }
+
         return { success: true, message: '验证成功' };
     } catch (error) {
         console.error('验证用户失败:', error);
@@ -480,7 +488,7 @@ export async function validateUserPassword(username: string, password: string): 
             return false;
         }
 
-        return user.password === password; // 在实际生产环境中应该使用加密比较
+        return compare(password, user.password);
     } catch (error) {
         console.error('验证用户密码失败:', error);
         return false;

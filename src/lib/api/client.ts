@@ -34,7 +34,10 @@ class ApiClient {
             const data = await response.json();
 
             if (!response.ok) {
-                throw new Error(data.message || '请求失败');
+                if (showError && data.message) {
+                    toast.error(data.message);
+                }
+                return data;
             }
 
             if (showSuccess && data.message) {

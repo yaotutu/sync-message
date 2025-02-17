@@ -1,80 +1,132 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { AuthService } from './lib/auth/service';
+import { AdminService } from './lib/auth/adminService';
 
-// 不需要认证的路由
-const publicPaths = [
-    '/api/user/login',
-    '/api/user/verify',
-    '/api/webhook',  // webhook endpoints
-    '/api/user/*/login',    // 用户登录
-    '/api/user/*/verify',   // 用户验证
-    '/api/user/*/logout',   // 用户退出
-    '/api/user/*/message',  // 通过卡密访问消息的路由
-    '/api/user/*/config',   // 用户配置（消息访问需要）
-    '/api/user/*/products', // 商品信息接口
+const authService = AuthService.getInstance();
+const adminService = AdminService.getInstance();
+
+// 需要用户认证的路径
+const protectedUserPaths = [
+    '/api/user/:username/profile',
+    '/api/user/:username/products',
+    '/api/user/:username/cardkeys',
+    '/api/user/:username/config',
 ];
 
-// 需要认证的API路由
-const protectedApiPaths = [
-    '/api/user/*/cardkeys',
-    '/api/user/*/profile',
-    '/api/user/*/app-helps',  // 添加帮助文档路由
+// 需要管理员认证的路径
+const protectedAdminPaths = [
+    '/api/manage/:path*',
+    '/manage/dashboard',
+    '/manage/users',
+    '/manage/products',
+    '/manage/settings',
+];
+
+// 公开路径
+const publicPaths = [
+    '/api/user/login',
+    '/api/manage/login',
+    '/api/manage/verify',
+    '/manage/login',
+    '/',
 ];
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    // 添加安全相关的 HTTP 头
-    const response = NextResponse.next();
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set(
-        'Content-Security-Policy',
-        "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
-    );
-
-    // 检查是否是公开路由
-    if (publicPaths.some(path => {
-        if (path.includes('*')) {
-            const regex = new RegExp('^' + path.replace('*', '[^/]+') + '$');
-            return regex.test(pathname);
-        }
-        return pathname.startsWith(path);
-    })) {
-        return response;
+    // 检查是否是公开路径
+    if (publicPaths.some(path => pathname.startsWith(path))) {
+        return NextResponse.next();
     }
 
-    // 检查是否是需要认证的API路由
-    const isProtectedApi = protectedApiPaths.some(path => {
-        if (path.includes('*')) {
-            const regex = new RegExp('^' + path.replace('*', '[^/]+') + '$');
-            return regex.test(pathname);
-        }
-        return pathname.startsWith(path);
-    });
+    // 检查是否需要管理员认证
+    const needsAdminAuth = protectedAdminPaths.some(path =>
+        pathname.match(new RegExp(path.replace(':path*', '.*'))));
 
-    if (isProtectedApi) {
-        const token = request.cookies.get('user_token');
-        if (!token) {
-            return NextResponse.json(
-                { success: false, message: '未登录' },
-                { status: 401 }
+    if (needsAdminAuth) {
+        try {
+            const token = request.cookies.get('admin_token')?.value;
+
+            if (!token) {
+                return new NextResponse(
+                    JSON.stringify({ success: false, message: '未登录' }),
+                    { status: 401, headers: { 'content-type': 'application/json' } }
+                );
+            }
+
+            const authResult = await adminService.verifySession(token);
+
+            if (!authResult.success) {
+                return new NextResponse(
+                    JSON.stringify({ success: false, message: '会话已过期' }),
+                    { status: 401, headers: { 'content-type': 'application/json' } }
+                );
+            }
+
+            return NextResponse.next();
+        } catch (error) {
+            return new NextResponse(
+                JSON.stringify({ success: false, message: '认证失败' }),
+                { status: 401, headers: { 'content-type': 'application/json' } }
             );
         }
     }
 
-    return response;
+    // 检查是否需要用户认证
+    const needsUserAuth = protectedUserPaths.some(path =>
+        pathname.match(new RegExp(path.replace(':username', '[^/]+'))));
+
+    if (needsUserAuth) {
+        try {
+            const token = request.cookies.get('user_token')?.value;
+
+            if (!token) {
+                return new NextResponse(
+                    JSON.stringify({ success: false, message: '未登录' }),
+                    { status: 401, headers: { 'content-type': 'application/json' } }
+                );
+            }
+
+            const authResult = await authService.verifySession(token);
+
+            if (!authResult.success || !authResult.data?.user) {
+                return new NextResponse(
+                    JSON.stringify({ success: false, message: '会话已过期' }),
+                    { status: 401, headers: { 'content-type': 'application/json' } }
+                );
+            }
+
+            // 检查用户权限
+            const urlUsername = pathname.split('/')[3];
+            if (urlUsername !== authResult.data.user.username) {
+                return new NextResponse(
+                    JSON.stringify({ success: false, message: '无权访问' }),
+                    { status: 403, headers: { 'content-type': 'application/json' } }
+                );
+            }
+
+            return NextResponse.next();
+        } catch (error) {
+            return new NextResponse(
+                JSON.stringify({ success: false, message: '认证失败' }),
+                { status: 401, headers: { 'content-type': 'application/json' } }
+            );
+        }
+    }
+
+    return NextResponse.next();
 }
 
-// 配置中间件匹配的路由
 export const config = {
     matcher: [
-        '/api/user/:path*',
-        '/api/webhook/:path*',
+        // 用户相关路径
+        '/api/user/:username/profile',
+        '/api/user/:username/products',
+        '/api/user/:username/cardkeys',
+        '/api/user/:username/config',
+        // 管理员相关路径
+        '/api/manage/:path*',
         '/manage/:path*',
-        '/user/:path*/cardkeys',
-        '/user/:path*/profile',
-        '/((?!_next/static|_next/image|favicon.ico).*)',
     ],
 };

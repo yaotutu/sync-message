@@ -2,19 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/hooks/useAuth';
 
-interface LoginProps {
-    username: string;
-    onLoginSuccess?: () => void;
-}
-
-export default function UserLogin({ username, onLoginSuccess }: LoginProps) {
+export default function AdminLoginPage() {
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
-    const { login } = useAuth(username);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,15 +16,20 @@ export default function UserLogin({ username, onLoginSuccess }: LoginProps) {
         setError('');
 
         try {
-            const success = await login(username, password);
-            if (success) {
-                if (onLoginSuccess) {
-                    onLoginSuccess();
-                }
-                // 登录成功后跳转到用户主页
-                router.push(`/user/${username}`);
+            const response = await fetch('/api/manage/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password }),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                router.push('/manage/dashboard');
             } else {
-                setError('用户名或密码错误');
+                setError(data.message || '登录失败');
             }
         } catch (err) {
             setError('登录过程中发生错误，请重试');
@@ -44,14 +43,27 @@ export default function UserLogin({ username, onLoginSuccess }: LoginProps) {
             <div className="max-w-md w-full space-y-8">
                 <div>
                     <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-                        用户登录
+                        管理员登录
                     </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                        用户名：{username}
-                    </p>
                 </div>
                 <form className="mt-8 space-y-6" onSubmit={handleLogin}>
                     <div className="rounded-md shadow-sm -space-y-px">
+                        <div>
+                            <label htmlFor="username" className="sr-only">
+                                用户名
+                            </label>
+                            <input
+                                id="username"
+                                name="username"
+                                type="text"
+                                required
+                                className="appearance-none rounded-t-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-700"
+                                placeholder="请输入管理员用户名"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                disabled={isLoading}
+                            />
+                        </div>
                         <div>
                             <label htmlFor="password" className="sr-only">
                                 密码
@@ -61,8 +73,8 @@ export default function UserLogin({ username, onLoginSuccess }: LoginProps) {
                                 name="password"
                                 type="password"
                                 required
-                                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-700"
-                                placeholder="请输入密码"
+                                className="appearance-none rounded-b-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm dark:bg-gray-700"
+                                placeholder="请输入管理员密码"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 disabled={isLoading}

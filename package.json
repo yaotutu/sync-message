@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "db:reset": "prisma migrate reset && prisma db push && prisma db seed"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
@@ -43,6 +45,6 @@
     "typescript": "^5.7.3"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "ts-node prisma/seed.ts"
   }
 }

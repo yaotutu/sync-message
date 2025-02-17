@@ -44,7 +44,7 @@ export function useAuth(currentUsername: string) {
     const login = async (username: string, password: string): Promise<boolean> => {
         try {
             const data = await apiClient.post(`/api/user/${username}/login`, { password }, {
-                showError: false
+                showError: true
             });
 
             if (data.success) {

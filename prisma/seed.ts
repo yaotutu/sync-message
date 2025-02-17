@@ -1,39 +1,48 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-    try {
-        // 创建默认管理员账户
-        const adminUsername = 'admin';
-        const adminPassword = 'admin123'; // 在生产环境中应该使用更强的密码
+    // 从环境变量获取管理员配置
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@2024';
 
+    try {
+        // 检查管理员是否已存在
         const existingAdmin = await prisma.admin.findUnique({
             where: { username: adminUsername }
         });
 
-        if (!existingAdmin) {
-            const adminData: Prisma.AdminCreateInput = {
-                username: adminUsername,
-                password: adminPassword, // 在实际生产环境中应该使用加密密码
-            };
+        // 加密密码
+        const hashedPassword = await hash(adminPassword, 10);
 
+        if (!existingAdmin) {
+            // 创建管理员账号
             await prisma.admin.create({
-                data: adminData
+                data: {
+                    username: adminUsername,
+                    password: hashedPassword,
+                }
             });
-            console.log('默认管理员账户创建成功');
+            console.log('✅ 管理员账号创建成功');
         } else {
-            console.log('管理员账户已存在，跳过创建');
+            // 更新管理员密码
+            await prisma.admin.update({
+                where: { username: adminUsername },
+                data: { password: hashedPassword }
+            });
+            console.log('✅ 管理员账号更新成功');
         }
     } catch (error) {
-        console.error('创建管理员账户时出错:', error);
+        console.error('❌ 初始化管理员账号失败:', error);
         throw error;
     }
 }
 
 main()
     .catch((e) => {
-        console.error('Seed 失败:', e);
+        console.error(e);
         process.exit(1);
     })
     .finally(async () => {
